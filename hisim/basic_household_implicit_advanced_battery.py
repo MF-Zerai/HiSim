@@ -61,12 +61,8 @@ if __name__ == '__main__':
             my_cfg.add_component(my_pvs)
 
             # Battery
-            fparameter = np.load(globals.HISIMPATH["bat_parameter"])
-
-            my_battery = {"AdvancedBattery": {"parameter": 0,
-                                              "capacity": capacity_i}}
+            my_battery = {"AdvancedBattery": {"capacity": capacity_i}}
             my_cfg.add_component(my_battery)
-
 
             # Controller
             my_controller = {"Controller": {"temperature_storage_target_warm_water": 50,

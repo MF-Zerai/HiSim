@@ -296,5 +296,9 @@ class SetupFunction:
         self.electricity_grid_consumption.append(ElectricityGrid(name=electricity_grid_label, grid=list_components))
         my_sim.add_component(self.electricity_grid_consumption[-1])
 
+class ParameterStudy:
 
-
+    def __init__(self, parameter_variation):
+        if os.path.isfile(HISIMPATH["cfg"]):
+            with open(os.path.join(HISIMPATH["cfg"])) as file:
+                self.cfg = json.load(file)

@@ -21,10 +21,12 @@ class AdvancedBattery(Component):
     ACBatteryPower = "AC Battery Power"
     StateOfCharge = "State Of Charge"
 
-    def __init__(self, parameter, capacity, my_simulation_parameters):
+    def __init__(self, capacity, my_simulation_parameters):
         super().__init__("AdvancedBattery")
 
-        self.build(parameter, sim_params=my_simulation_parameters, capacity=capacity)
+        parameters = np.load(globals.HISIMPATH["bat_parameter"])
+
+        self.build(parameters, sim_params=my_simulation_parameters, capacity=capacity)
 
         self.state = AdvancedBatteryState(soc=0.0, P_bs=0.0, _th=False)
         self.previous_state = copy.copy(self.state)
@@ -60,7 +62,6 @@ class AdvancedBattery(Component):
         # Loading of particular variables
         self._dt = _dt
         self._E_BAT = cap
-        print(d[1])
         self._eta_BAT = d[1]
         self._t_CONSTANT = d[2]
         self._P_SYS_SOC0_DC = d[3]
