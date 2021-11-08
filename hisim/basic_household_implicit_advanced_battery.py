@@ -11,13 +11,12 @@ from components import weather
 from components import pvs
 from components import advanced_battery
 from components import controller
-from components import heat_pump_hplib
 
 from components import building
 #from components import heat_pump
 from components import sumbuilder
 import simulator as sim
-from cfg_automator import ConfigurationGenerator, SetupFunction, ComponentsConnection, ComponentsConcatenation
+from cfg_automator import ConfigurationGenerator, SetupFunction, ComponentsConnection, ComponentsGrouping
 import loadtypes
 
 __authors__ = "Vitor Hugo Bellotto Zago"
@@ -38,7 +37,7 @@ if __name__ == '__main__':
     pvs_powers = [5E3, 10E3, 15E3, 20E3]
     capacity = [5, 10]
     for pvs_power in pvs_powers:
-        for capacity in capacity:
+        for capacity_i in capacity:
             # Create configuration object
             my_cfg = ConfigurationGenerator()
 
@@ -55,22 +54,17 @@ if __name__ == '__main__':
                                                  "multiplier": 3}}
 
             my_cfg.add_component(my_csv_loader)
-            #Weather
+            # Weather
             my_cfg.add_component("Weather")
-            #PVS
+            # PVS
             my_pvs = {"PVSystem": {"power": pvs_power}}
             my_cfg.add_component(my_pvs)
 
-            #Battery
-            fparameter = np.load(globals.HISIMPATH["bat_parameter"])
-
-            my_battery = {"AdvancedBattery": {"parameter": fparameter,
-                                              "sim_params":my_cfg.SimulationParameters,
-                                              "capacity": capacity}}
+            # Battery
+            my_battery = {"AdvancedBattery": {"capacity": capacity_i}}
             my_cfg.add_component(my_battery)
 
-
-            #Controller
+            # Controller
             my_controller = {"Controller": {"temperature_storage_target_warm_water": 50,
                                               "temperature_storage_target_heating_water": 40,
                                               "temperature_storage_target_hysteresis": 40,
@@ -79,7 +73,7 @@ if __name__ == '__main__':
             my_cfg.add_component(my_controller)
 
             ####################################################################################################################
-            # Set concatenations
+            # Set groupings
             ####################################################################################################################
             # Set connections
             my_connection_component = ComponentsConnection(first_component="Weather",
@@ -106,7 +100,6 @@ if __name__ == '__main__':
                                                      first_component_output="ACBatteryPower",
                                                      second_component_input="ElectricityToOrFromBatteryReal")
             my_cfg.add_connection(my_controller_to_battery)
-
 
             # Export configuration file
             my_cfg.dump()

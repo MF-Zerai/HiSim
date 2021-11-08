@@ -15,9 +15,10 @@ from components import controller
 from components import heat_pump_hplib
 
 from components import building
+#from components import heat_pump
 from components import sumbuilder
 import simulator as sim
-from cfg_automator import ConfigurationGenerator, SetupFunction, ComponentsConnection, ComponentsConcatenation
+from cfg_automator import ConfigurationGenerator, SetupFunction, ComponentsConnection, ComponentsGrouping
 import loadtypes
 
 __authors__ = "Vitor Hugo Bellotto Zago"
@@ -111,7 +112,7 @@ if __name__ == '__main__':
                                           "p_th_set": hp_thermal_power}}
         my_cfg.add_component(my_heat_pump_hplib)
         ####################################################################################################################
-        # Set concatenations
+        # Set groupings
         ####################################################################################################################
 
         ###################################################################################################################
@@ -131,7 +132,7 @@ if __name__ == '__main__':
                                                  first_component_output="TemperatureOutside",
                                                  second_component_input="TemperatureInputPrimary")
         my_cfg.add_connection(my_weather_to_heat_pump_a)
-        
+
         my_weather_to_heat_pump_b = ComponentsConnection(first_component="Weather",
                                                  second_component="HeatPumpHplib",
                                                  method="Manual",
@@ -169,7 +170,7 @@ if __name__ == '__main__':
         my_cfg.add_connection(my_chp_to_heat_storage)
 
         #Outputs from GasHeater
-        
+
         my_gas_heater_to_heat_storage = ComponentsConnection(first_component="GasHeater",
                                                  second_component="HeatStorage",
                                                  method="Manual",
@@ -185,7 +186,7 @@ if __name__ == '__main__':
                                                  first_component_output="ThermalOutputPower",
                                                  second_component_input="ThermalInputPower3")
         my_cfg.add_connection(my_heat_pump_to_heat_storage)
-        
+
         my_heat_pump_to_controller = ComponentsConnection(first_component="HeatPumpHplib",
                                                  second_component="Controller",
                                                  method="Manual",

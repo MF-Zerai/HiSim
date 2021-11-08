@@ -21,10 +21,12 @@ class AdvancedBattery(Component):
     ACBatteryPower = "AC Battery Power"
     StateOfCharge = "State Of Charge"
 
-    def __init__(self, parameter, my_simulation_parameters,capacity):
+    def __init__(self, capacity, my_simulation_parameters):
         super().__init__("AdvancedBattery")
 
-        self.build(parameter, sim_params=my_simulation_parameters, capacity=capacity)
+        parameters = np.load(globals.HISIMPATH["bat_parameter"])
+
+        self.build(parameters, sim_params=my_simulation_parameters, capacity=capacity)
 
         self.state = AdvancedBatteryState(soc=0.0, P_bs=0.0, _th=False)
         self.previous_state = copy.copy(self.state)
@@ -46,8 +48,8 @@ class AdvancedBattery(Component):
                                                        lt.LoadTypes.Any,
                                                        lt.Units.Any)
 
-    def build(self, parameter, sim_params,capacity):
-        self.BatMod_AC(d=parameter, _dt=sim_params.seconds_per_timestep,cap=capacity)
+    def build(self, parameter, sim_params, capacity):
+        self.BatMod_AC(d=parameter, _dt=sim_params.seconds_per_timestep, cap=capacity)
 
     def BatMod_AC(self, d, _dt, cap):
         """Performance Simulation function for AC-coupled advanced_battery systems

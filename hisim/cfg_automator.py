@@ -73,7 +73,7 @@ class ComponentsConnection:
                               "First Component Output" : self.first_component_output,
                               "Second Component Input" : self.second_component_input}
 
-class ComponentsConcatenation:
+class ComponentsGrouping:
 
     def __init__(self,
                  component_name,
@@ -98,8 +98,6 @@ class ComponentsConcatenation:
                               "First Component Output": self.first_component_output,
                               "Second Component Output": self.second_component_output}
 
-
-
 class ConfigurationGenerator:
     SimulationParameters = {"year": 2019,
                             "seconds_per_timestep": 60,
@@ -109,7 +107,7 @@ class ConfigurationGenerator:
         self.load_component_modules()
         self._simulation_parameters = {}
         self._components = {}
-        self._concatenations = {}
+        self._groupings = {}
         self._connections = {}
 
     def load_component_modules(self):
@@ -158,8 +156,8 @@ class ConfigurationGenerator:
         else:
             self._components[user_components_name] = self.preloaded_components[user_components_name]
 
-    def add_concatenation(self, concatenation_components):
-        self._concatenations[concatenation_components.component_name] = concatenation_components.configuration
+    def add_grouping(self, grouping_components):
+        self._groupings[grouping_components.component_name] = grouping_components.configuration
 
     def add_connection(self, connection_components):
         number_of_connections = len(self._connections)
@@ -178,7 +176,7 @@ class ConfigurationGenerator:
     def dump(self):
         self.data = {"SimulationParameters": self._simulation_parameters,
                      "Components": self._components,
-                     "Concatenations": self._concatenations,
+                     "Groupings": self._groupings,
                      "Connections": self._connections}
         with open(HISIMPATH["cfg"], "w") as f:
             json.dump(self.data, f, indent=4)
@@ -191,7 +189,7 @@ class SetupFunction:
                 self.cfg = json.load(file)
         self._components = []
         self._connections = []
-        self._concatenations = []
+        self._groupings = []
         self.electricity_grids : List[ElectricityGrid] = []
         self.electricity_grid_consumption : List[ElectricityGrid] = []
 
@@ -200,8 +198,8 @@ class SetupFunction:
         for comp in self.cfg["Components"]:
             if comp in globals():
                 self.add_component(comp, my_sim)
-        for concatenation_key, concatenation_value in self.cfg["Concatenations"].items():
-            self.add_concatenation(concatenation_value, my_sim)
+        for grouping_key, grouping_value in self.cfg["Groupings"].items():
+            self.add_grouping(grouping_value, my_sim)
         for connection_key, connection_value in self.cfg["Connections"].items():
             self.add_connection(connection_value)
 
@@ -223,30 +221,39 @@ class SetupFunction:
         for parameter_name in signature.parameters:
             if signature.parameters[parameter_name].annotation == component.SimulationParameters or parameter_name == "my_simulation_parameters":
                 self.cfg["Components"][comp][parameter_name] = my_sim.SimulationParameters
-        self._components.append(globals()[comp](**self.cfg["Components"][comp]))
+        try:
+            self._components.append(globals()[comp](**self.cfg["Components"][comp]))
+        except Exception as e:
+            print("Adding Component {} resulted in a failure".format(comp))
+            print("Please, investigate implementation mistakes in this Component.")
+            print(e)
+            sys.exit(1)
         # Add last listed component to Simulator object
         my_sim.add_component(self._components[-1])
         if electricity_output is not None:
             pass
-            #self.add_to_electricity_grid_consumption(my_sim, self.occupancy)
+            #ToDo: Implement electricity sum here.
 
-    def add_concatenation(self, concatenation, my_sim):
+    def add_grouping(self, grouping, my_sim):
         for component in self._components:
-            if type(component).__name__ == concatenation["Second Component"]:
+            if type(component).__name__ == grouping["Second Component"]:
                 second_component = component
-            elif type(component).__name__ == concatenation["First Component"]:
+            elif type(component).__name__ == grouping["First Component"]:
                 first_component = component
 
-        my_concatenated_component = CalculateOperation(name=concatenation["Component Name"])
+        my_concatenated_component = CalculateOperation(name=grouping["Component Name"])
         my_concatenated_component.connect_input(src_object_name=first_component.ComponentName,
-                                                src_field_name=getattr(first_component, concatenation["First Component Output"]))
-        my_concatenated_component.add_operation(operation=concatenation["Operation"])
+                                                src_field_name=getattr(first_component, grouping["First Component Output"]))
+        my_concatenated_component.add_operation(operation=grouping["Operation"])
         my_concatenated_component.connect_input(src_object_name=second_component.ComponentName,
-                                                src_field_name=getattr(second_component, concatenation["Second Component Output"]))
+                                                src_field_name=getattr(second_component, grouping["Second Component Output"]))
         self._components.append(my_concatenated_component)
         my_sim.add_component(my_concatenated_component)
 
     def add_connection(self, connection):
+        first_component = None
+        second_component = None
+
         for component in self._components:
             if component.ComponentName == connection["Second Component"]:
                 second_component = component
@@ -262,19 +269,7 @@ class SetupFunction:
                                                src_object_name=first_component.ComponentName,
                                                src_field_name=getattr(first_component, connection["First Component Output"]))
             except ValueError:
-                print("What?")
-
-
-
-    def add_occupancy(self, my_sim):
-        # Sets Occupancy
-        self.occupancy = Occupancy(**self.cfg["Occupancy"])
-        my_sim.add_component(self.occupancy)
-        self.add_to_electricity_grid_consumption(my_sim, self.occupancy)
-
-        # Sets base grid with PVSystem
-        #self.electricity_grids.append(ElectricityGrid(name="BaseloadAndPVSystem", grid=[self.occupancy, "Subtract", self.pvs]))
-        #my_sim.add_component(self.electricity_grids[-1])
+                print("Incorrect Connection")
 
     def add_to_electricity_grid(self, my_sim, next_component, electricity_grid_label=None):
         n_consumption_components = len(self.electricity_grids)
@@ -302,50 +297,9 @@ class SetupFunction:
         self.electricity_grid_consumption.append(ElectricityGrid(name=electricity_grid_label, grid=list_components))
         my_sim.add_component(self.electricity_grid_consumption[-1])
 
+class ParameterStudy:
 
-    def add_battery(self, my_sim):
-
-        self.battery_controller = BatteryController()
-
-        self.battery_controller.connect_electricity(self.electricity_grids[-1])
-        my_sim.add_component(self.battery_controller)
-
-        self.battery = Battery(**self.cfg["Battery"], sim_params=self.time)
-        self.battery.connect_similar_inputs(self.battery_controller)
-        self.battery.connect_electricity(self.electricity_grids[-1])
-        my_sim.add_component(self.battery)
-
-        self.add_to_electricity_grid_consumption(my_sim, self.battery)
-        self.add_to_electricity_grid(my_sim, self.battery)
-
-    def add_csv_load_power(self,my_sim):
-        self.csv_load_power_demand = CSVLoader(component_name="csv_load_power",
-                                          csv_filename="Lastprofile/SOSO/Orginal/EFH_Bestand_TRY_5_Profile_1min.csv",
-                                          column=0,
-                                          loadtype=loadtypes.LoadTypes.Electricity,
-                                          unit=loadtypes.Units.Watt,
-                                          column_name="power_demand",
-                                          simulation_parameters=my_sim,
-                                          multiplier=6)
-        my_sim.add_component(self.csv_load_power_demand)
-
-    def add_controller(self,my_sim):
-
-        self.controller = Controller()
-        self.controller.connect_input(self.controller.ElectricityToOrFromBatteryReal,
-                                    self.advanced_battery.ComponentName,
-                                    self.advanced_battery.ACBatteryPower)
-        self.controller.connect_input(self.controller.ElectricityConsumptionBuilding,
-                                    self.csv_load_power_demand.ComponentName,
-                                    self.csv_load_power_demand.Output1)
-        self.controller.connect_input(self.controller.ElectricityOutputPvs,
-                                    self.pvs.ComponentName,
-                                    self.pvs.ElectricityOutput)
-        my_sim.add_component(self.controller)
-
-        self.advanced_battery.connect_input(self.advanced_battery.LoadingPowerInput,
-                                            self.controller.ComponentName,
-                                            self.controller.ElectricityToOrFromBatteryTarget)
-
-    def close(self):
-        pass
+    def __init__(self, parameter_variation):
+        if os.path.isfile(HISIMPATH["cfg"]):
+            with open(os.path.join(HISIMPATH["cfg"])) as file:
+                self.cfg = json.load(file)
