@@ -26,25 +26,25 @@ class HeatPumpHplib(Component):
     """
 
     # Inputs
-    Mode = "Mode"  # 0 = off, 1 = heating, 2 = cooling
-    TemperatureInputPrimary = "TemperatureInputPrimary"  # °C
-    TemperatureInputSecondary = "TemperatureInputSecondary"  # °C
-    TemperatureAmbient = "TemperatureAmbient"  # °C
+    Mode = "Mode"                                               # 0 = off, 1 = heating, 2 = cooling
+    TemperatureInputPrimary = "TemperatureInputPrimary"         # °C
+    TemperatureInputSecondary = "TemperatureInputSecondary"     # °C
+    TemperatureAmbient = "TemperatureAmbient"                   # °C
 
     # Outputs
-    ThermalOutputPower = "ThermalOutputPower"  # W
-    ElectricalInputPower = "ElectricalInputPower"  # W
-    COP = "COP"  # -
-    EER = "EER"  # -
-    TemperatureOutput = "TemperatureOutput"  # °C
-    MassFlowOutput = "MassFlowOutput"  # kg/s
-    TimeOn = "TimeOn"  # s
-    TimeOff = "TimeOff"  # s
+    ThermalOutputPower = "ThermalOutputPower"                   # W
+    ElectricalInputPower = "ElectricalInputPower"               # W
+    COP = "COP"                                                 # -
+    EER = "EER"                                                 # -
+    TemperatureOutput = "TemperatureOutput"                     # °C
+    MassFlowOutput = "MassFlowOutput"                           # kg/s
+    TimeOn = "TimeOn"                                           # s
+    TimeOff = "TimeOff"                                         # s
 
     def __init__(self, model: str, group_id: int = None, t_in: float = None, t_out: float = None,
                  p_th_set: float = None):
         """
-        Loads the parameters of the specified heat pump and creates the object HeatPump
+        Loads the parameters of the specified heat pump and creates the object HeatPump 
         for simulation purpose.
 
         Parameters
@@ -80,15 +80,15 @@ class HeatPumpHplib(Component):
         self.HeatPump = hpl.HeatPump(self.parameters)
 
         # Set minimum on- and off-time of heat pump
-        self.time_on_min = 600  # [s]
+        self.time_on_min = 600 # [s]
         self.time_off_min = self.time_on_min
 
         # Define component inputs
         self.mode: ComponentInput = self.add_input(object_name=self.ComponentName,
-                                                   field_name=self.Mode,
-                                                   load_type=LoadTypes.Any,
-                                                   unit=Units.Any,
-                                                   mandatory=True)
+                                                            field_name=self.Mode,
+                                                            load_type=LoadTypes.Any,
+                                                            unit=Units.Any,
+                                                            mandatory=True)
 
         self.t_in_primary: ComponentInput = self.add_input(object_name=self.ComponentName,
                                                            field_name=self.TemperatureInputPrimary,
@@ -191,8 +191,8 @@ class HeatPumpHplib(Component):
             Time how long the heat pump is currently running. [s]
         time_off : numeric
             Time how long the heat pump has not run. [s]
-        """
-
+        """ 
+        
         # Load input values
         mode = stsv.get_input_value(self.mode)
         t_in_primary = stsv.get_input_value(self.t_in_primary)
@@ -201,23 +201,25 @@ class HeatPumpHplib(Component):
         time_on = self.state.time_on
         time_off = self.state.time_off
         mode_previous = self.state.mode_previous
-
+        
         # Overwrite mode to realize minimum time on or time off
         if mode_previous == 1 and time_on < self.time_on_min:
-            mode = 1
+            mode=1
+        if mode_previous == 2 and time_on < self.time_on_min:
+            mode=2
         elif mode_previous == 0 and time_off < self.time_off_min:
-            mode = 0
+            mode=0
 
         # Mode (0=off, 1=heating, 2=cooling)
-        if mode == 1:
+        if mode == 1 or 2:
             # Calulate outputs
             results = self.HeatPump.simulate(t_in_primary, t_in_secondary, t_amb, mode)
-            p_th = results['P_th']
-            p_el = results['P_el']
-            cop = results['COP']
-            eer = results['EER']
-            t_out = results['T_out']
-            m_dot = results['m_dot']
+            p_th=results['P_th']
+            p_el=results['P_el']
+            cop=results['COP']
+            eer=results['EER']
+            t_out=results['T_out']
+            m_dot=results['m_dot']
             time_on = time_on + seconds_per_timestep
             time_off = 0
         else:
@@ -244,8 +246,7 @@ class HeatPumpHplib(Component):
         # write values to state
         self.state.time_on = time_on
         self.state.time_off = time_off
-        self.state.mode = mode
-
+        self.state.mode_previous = mode
 
 @dataclass
 class HeatPumpState:
@@ -258,5 +259,6 @@ class HeatPumpState:
         Stores the state of the runtime in seconds value from :py:class:`~hisim.component.HeatPump`.
     """
     time_on: int = 0
-    time_off: int = 0
-    mode_previous: int = 1
+    time_off: int = 600
+    mode_previous: int = 0
+    
