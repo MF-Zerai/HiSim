@@ -35,9 +35,12 @@ def basic_household_implicit_chp(my_sim: sim.Simulator):
     my_setup_function.build(my_sim)
 
 if __name__ == '__main__':
+    import pyDOE
 
-    pvs_powers = [5E3]
-    capacity = [5]
+    smt
+
+    pvs_powers = [5E3,10E3]
+    capacity = [5,10,15]
     for pvs_power in pvs_powers:
         # Create configuration object
         my_cfg = ConfigurationGenerator()
@@ -99,7 +102,18 @@ if __name__ == '__main__':
         my_gas_heater = {"GasHeater": {"temperaturedelta": 10}}
         my_cfg.add_component(my_gas_heater)
 
-
+        #HeatPump
+        hp_manufacturer = "Generic"
+        hp_type = 1  # air/water | regulated
+        hp_thermal_power = 12000  # W
+        hp_t_input = -7  # °C
+        hp_t_output = 52  # °C
+        my_heat_pump_hplib = {"HeatPumpHplib": {"model": "Generic",
+                                          "group_id": hp_type,
+                                          "t_in": hp_t_input,
+                                          "t_out": hp_t_output,
+                                          "p_th_set": hp_thermal_power}}
+        my_cfg.add_component(my_heat_pump_hplib)
         ####################################################################################################################
         # Set groupings
         ####################################################################################################################
@@ -115,6 +129,19 @@ if __name__ == '__main__':
 
         #Outputs from Weather
 
+        my_weather_to_heat_pump_a = ComponentsConnection(first_component="Weather",
+                                                 second_component="HeatPumpHplib",
+                                                 method="Manual",
+                                                 first_component_output="TemperatureOutside",
+                                                 second_component_input="TemperatureInputPrimary")
+        my_cfg.add_connection(my_weather_to_heat_pump_a)
+
+        my_weather_to_heat_pump_b = ComponentsConnection(first_component="Weather",
+                                                 second_component="HeatPumpHplib",
+                                                 method="Manual",
+                                                 first_component_output="TemperatureOutside",
+                                                 second_component_input="TemperatureAmbient")
+        my_cfg.add_connection(my_weather_to_heat_pump_b)
 
         #Outputs from PVSystem
         my_pvs_to_controller = ComponentsConnection(first_component="PVSystem",
@@ -156,7 +183,19 @@ if __name__ == '__main__':
 
         #Outputs from HeatPump
 
+        my_heat_pump_to_heat_storage = ComponentsConnection(first_component="HeatPumpHplib",
+                                                 second_component="HeatStorage",
+                                                 method="Manual",
+                                                 first_component_output="ThermalOutputPower",
+                                                 second_component_input="ThermalInputPower3")
+        my_cfg.add_connection(my_heat_pump_to_heat_storage)
 
+        my_heat_pump_to_controller = ComponentsConnection(first_component="HeatPumpHplib",
+                                                 second_component="Controller",
+                                                 method="Manual",
+                                                 first_component_output="ElectricalInputPower",
+                                                 second_component_input="ElectricityDemandHeatPump")
+        my_cfg.add_connection(my_heat_pump_to_controller)
 
         #Outputs from Storage
         my_storage_to_controller_a = ComponentsConnection(first_component="HeatStorage",
@@ -173,7 +212,12 @@ if __name__ == '__main__':
                                                  second_component_input="StorageTemperatureWarmWater")
         my_cfg.add_connection(my_storage_to_controller_b)
 
-
+        my_storage_to_heat_pump = ComponentsConnection(first_component="HeatStorage",
+                                                 second_component="HeatPumpHplib",
+                                                 method="Manual",
+                                                 first_component_output="WaterOutputStorageforHeaters",
+                                                 second_component_input="TemperatureInputSecondary")
+        my_cfg.add_connection(my_storage_to_heat_pump)
 
         my_storage_to_gas_heater= ComponentsConnection(first_component="HeatStorage",
                                                  second_component="GasHeater",
@@ -211,7 +255,12 @@ if __name__ == '__main__':
                                                  second_component_input="ControlSignal")
         my_cfg.add_connection(my_controller_to_gas_heater)
 
-
+        my_controller_to_heat_pump = ComponentsConnection(first_component="Controller",
+                                                 second_component="HeatPumpHplib",
+                                                 method="Manual",
+                                                 first_component_output="ControlSignalHeatPump",
+                                                 second_component_input="Mode")
+        my_cfg.add_connection(my_controller_to_heat_pump)
 
         my_controller_to_heat_storage = ComponentsConnection(first_component="Controller",
                                                  second_component="HeatStorage",

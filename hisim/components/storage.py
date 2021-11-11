@@ -192,6 +192,8 @@ class HeatStorage(Component):
         result_ww=[T_sp_var_ww,0]
         result_hw=[T_sp_var_hw,0]
         T_sp_C=(T_sp_var_ww+T_sp_var_hw)/2
+        if timestep == 100:
+            print("stop")
         if stsv.get_input_value(self.control_signal_choose_storage) == 1: #choose to heat up warm water storage
             production_var = self.adding_all_possible_mass_flows(stsv, c_w=self.cw)
             result_ww = self.calculate_new_storage_temperature(seconds_per_timestep=seconds_per_timestep, T_sp=T_sp_var_ww,
@@ -205,6 +207,7 @@ class HeatStorage(Component):
             production_var = self.adding_all_possible_mass_flows(stsv, c_w=self.cw)
             result_hw = self.calculate_new_storage_temperature(seconds_per_timestep=seconds_per_timestep, T_sp=T_sp_var_hw,
                                                             production=production_var, last=last_var_hw, c_w=self.cw,V_SP=self.V_SP_heating_water)
+
             T_sp_C = result_hw[0]
             production_var=0
             result_ww = self.calculate_new_storage_temperature(seconds_per_timestep=seconds_per_timestep, T_sp=T_sp_var_ww,

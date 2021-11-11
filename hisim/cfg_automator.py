@@ -100,7 +100,7 @@ class ComponentsGrouping:
 
 class ConfigurationGenerator:
     SimulationParameters = {"year": 2019,
-                            "seconds_per_timestep": 60,
+                            "seconds_per_timestep": 60*15,
                             "method": "full_year"}
 
     def __init__(self, set=None):

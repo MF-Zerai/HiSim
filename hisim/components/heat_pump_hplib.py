@@ -211,7 +211,7 @@ class HeatPumpHplib(Component):
             mode=0
 
         # Mode (0=off, 1=heating, 2=cooling)
-        if mode == 1 or 2:
+        if mode == 1 or mode == 2:
             # Calulate outputs
             results = self.HeatPump.simulate(t_in_primary, t_in_secondary, t_amb, mode)
             p_th=results['P_th']

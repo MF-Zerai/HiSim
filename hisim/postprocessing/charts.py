@@ -75,7 +75,7 @@ class Carpet(Chart):
                          directorypath=directorypath,
                          time_correction_factor=time_correction_factor)
     def plot(self):
-        database = self.data.values.reshape(365, 24 * 60)
+        database = self.data.values.reshape(365, 24 * 4) #set to 24*60 for 1 min simulation step
         if np.max(np.abs(self.data.values)) > 1.5E3:
             database = database * 1E-3
             self.units = "k{}".format(self.units)
