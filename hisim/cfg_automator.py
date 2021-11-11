@@ -3,6 +3,7 @@ import os
 import ast
 import component
 import inspect
+import copy
 import shutil
 import sys
 import loadtypes
@@ -12,6 +13,8 @@ from inspect import isclass
 from pkgutil import iter_modules
 from pathlib import Path as gg
 from importlib import import_module
+import simulator as sim
+import hisim
 
 # IMPORT ALL COMPONENT CLASSES DYNAMICALLY
 # DIRTY CODE. GIVE ME BETTER SUGGESTIONS
@@ -103,12 +106,13 @@ class ConfigurationGenerator:
                             "seconds_per_timestep": 60,
                             "method": "full_year"}
 
-    def __init__(self, set=None):
+    def __init__(self):
         self.load_component_modules()
         self._simulation_parameters = {}
         self._components = {}
         self._groupings = {}
         self._connections = {}
+        self._parameters_range_studies = {}
 
     def load_component_modules(self):
         self.preloaded_components = {}
@@ -167,6 +171,16 @@ class ConfigurationGenerator:
                                                       connection_components.second_component)
         self._connections[connection_name] = connection_components.configuration
 
+    def add_paramater_range(self, parameter_range):
+        self._parameters_range_studies.update(parameter_range)
+
+    def reset(self):
+        self._simulation_parameters = {}
+        self._components = {}
+        self._groupings = {}
+        self._connections = {}
+        self._parameters_range_studies = {}
+
     def print_components(self):
         print(json.dumps(self._components, sort_keys=True, indent=4))
 
@@ -180,6 +194,26 @@ class ConfigurationGenerator:
                      "Connections": self._connections}
         with open(HISIMPATH["cfg"], "w") as f:
             json.dump(self.data, f, indent=4)
+
+    def run(self):
+        #os.system("python hisim.py cfg_automator basic_household_implicit")
+        hisim.main("cfg_automator","basic_household_implicit")
+
+
+    def run_parameter_studies(self):
+        for component_class, parameter_name_and_range in self._parameters_range_studies.items():
+            parameters_range_studies_entry = copy.deepcopy(self._parameters_range_studies)
+            if isinstance(parameter_name_and_range, dict):
+                for parameter_name, range in parameter_name_and_range.items():
+                    cached_range = range
+            for value in cached_range:
+                parameters_range_studies_entry[component_class][parameter_name] = value
+                self.add_component(parameters_range_studies_entry)
+                self.dump()
+                self.run()
+
+    def run_cross_parameter_studies(self):
+        pass
 
 class SetupFunction:
 
@@ -296,9 +330,22 @@ class SetupFunction:
         self.electricity_grid_consumption.append(ElectricityGrid(name=electricity_grid_label, grid=list_components))
         my_sim.add_component(self.electricity_grid_consumption[-1])
 
-class ParameterStudy:
+def basic_household_implicit(my_sim: sim.Simulator):
+    my_setup_function = SetupFunction()
+    my_setup_function.build(my_sim)
 
-    def __init__(self, parameter_variation):
-        if os.path.isfile(HISIMPATH["cfg"]):
-            with open(os.path.join(HISIMPATH["cfg"])) as file:
-                self.cfg = json.load(file)
+#class ParameterStudy(ConfigurationGenerator):
+#
+#    def __init__(self):
+#        if os.path.isfile(HISIMPATH["cfg"]):
+#            with open(os.path.join(HISIMPATH["cfg"])) as file:
+#                self.cfg = json.load(file)
+#
+#        self.parameters_range = {}
+#
+#    def add_parameter_range(self, parameter_range):
+#        self.parameters_range.update(parameter_range)
+#
+#    def run(self):
+#        pass
+

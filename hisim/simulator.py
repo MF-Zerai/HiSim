@@ -1,18 +1,15 @@
 from typing import List
 import os
-import time
 import logging
-import datetime
+import json
 import numpy as np
 import datetime
-import copy
 
 # Other Libraries
 from typing import List
 import pandas as pd
 import pickle
 import warnings
-
 
 import time
 
@@ -179,6 +176,7 @@ class Simulator:
         self.SimulationParameters = None
         self.WrappedComponents: List[ComponentWrapper] = []
         self.all_outputs: List[cp.ComponentOutput] = []
+        self._cfg = {}
 
         if os.path.isdir(os.path.join(module_directory, "results")) is False:
             os.mkdir(os.path.join(module_directory, "results"))
@@ -208,6 +206,9 @@ class Simulator:
         wrap = ComponentWrapper(component, is_cachable)
         wrap.register_component_outputs(self.all_outputs)
         self.WrappedComponents.append(wrap)
+
+    def add_configuration(self, cfg_json_dict):
+        self._cfg = cfg_json_dict
 
     def connect_all_components(self):
         """
@@ -373,10 +374,15 @@ class Simulator:
 
         self.get_std_results()
 
+        if self._cfg:
+            with open(os.path.join(self.dirpath, "cfg.json"), "w") as f:
+                json.dump(self._cfg, f, indent=4)
+
         time_correction_factor = 1/self.SimulationParameters.seconds_per_timestep
         to_be_pickle = {"time_correction_factor" : time_correction_factor,
                         "directory_path": self.dirpath,
                         "results": self.results,
+                        "cfg": self._cfg,
                         "all_outputs" : self.all_outputs,
                         "simulation_parameters" : self.SimulationParameters,
                         "wrapped_components" : self.WrappedComponents,
@@ -386,14 +392,9 @@ class Simulator:
                         "execution_time": self.execution_time,
                         "results_m": self.results_m}
 
-        #to_be_pickle = {"report": self.report,
-        #                "directory_path": self.dirpath,
-        #                "all_outputs": self.all_outputs,
-        #                "results": self.results}
-
-
         with open(os.path.join(self.dirpath, "data.pkl"), "wb") as output:
             pickle.dump(to_be_pickle, output, pickle.HIGHEST_PROTOCOL)
+
 
     def get_std_results(self):
         pd_timeline = pd.date_range(start=self.SimulationParameters.start_date,

@@ -25,7 +25,7 @@ import warnings
 class PostProcessor:
 
     def __init__(self,
-                 resultsdir,
+                 resultsdir=None,
                  all_outputs=None,
                  results=None,
                  time_correction_factor=None,
@@ -66,15 +66,25 @@ class PostProcessor:
         self.get_pickle_attributes(sim_pickle)
 
     def get_lastest_pickle(self):
-        stored_results_list = os.listdir(self.resultsdir)
-        execution_dates = []
-        for index, result_dir in enumerate(stored_results_list):
-            temp = result_dir.split("_")
-            execution_dates.append("{}_{}".format(temp[-2], temp[-1]))
+        if self.resultsdir is None:
+            stored_results_list = next(os.walk(globals.HISIMPATH["results"]))[1]
+            execution_dates = []
+            for index, result_dir in enumerate(stored_results_list):
+                temp = result_dir.split("_")
+                execution_dates.append("{}_{}".format(temp[-2], temp[-1]))
 
-        dir_index = execution_dates.index(max(execution_dates))
-        latest_dir = stored_results_list[dir_index]
-        latest_dir_path = os.path.join(self.resultsdir, latest_dir)
+            dir_index = execution_dates.index(max(execution_dates))
+            latest_dir = stored_results_list[dir_index]
+        else:
+            stored_results_list = next(os.walk(self.resultsdir))[1]
+            execution_dates = []
+            for index, result_dir in enumerate(stored_results_list):
+                temp = result_dir.split("_")
+                execution_dates.append("{}_{}".format(temp[-2], temp[-1]))
+
+            dir_index = execution_dates.index(max(execution_dates))
+            latest_dir = stored_results_list[dir_index]
+        latest_dir_path = os.path.join(globals.HISIMPATH["results"], latest_dir)
         for file in os.listdir(latest_dir_path):
             if file.endswith(".pkl"):
                 pickle_file = file
