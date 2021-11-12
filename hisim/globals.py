@@ -28,7 +28,7 @@ HISIMPATH       = {"results": os.path.join(hisim_abs_path, "results"),
                    "inputs" : os.path.join(hisim_abs_path, "inputs"),
                    "cache_dir": os.path.join(hisim_abs_path, "inputs", "cache"),
                    "cache_indices": os.path.join(hisim_abs_path, "inputs", "cache", "cache_indices.json"),
-                   "cfg": os.path.join(hisim_abs_path, "inputs", "cfg.json"),
+                   "cfg": os.path.join(hisim_abs_path, "results", "cfg.json"),
 
                    "weather": {"Aachen": os.path.join(hisim_inputs,
                                                       "weather",
