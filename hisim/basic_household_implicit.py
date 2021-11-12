@@ -90,9 +90,11 @@ if __name__ == '__main__':
 
 
     my_pvs = {"PVSystem": {"power": pvs_powers}}
-
+    my_battery=
     # Run Parameter Studies
     my_cfg.add_paramater_range(my_pvs)
+    my_cfg.add_paramater_range(battery)
+
     my_cfg.run_parameter_studies()
 
 

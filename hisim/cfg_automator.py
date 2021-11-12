@@ -24,7 +24,7 @@ __maintainer__ = "Vitor Hugo Bellotto Zago"
 __email__ = "vitor.zago@rwth-aachen.de"
 __status__ = "development"
 
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=#logging.INFO)
 
 # IMPORT ALL COMPONENT CLASSES DYNAMICALLY
 # DIRTY CODE. GIVE ME BETTER SUGGESTIONS
@@ -180,7 +180,7 @@ class ConfigurationGenerator:
         """
         if my_simulation_parameters is None:
             self._simulation_parameters = self.SimulationParameters
-            logging.info("Simulation parameters have been added to the configuration JSON file.")
+            #logging.info("Simulation parameters have been added to the configuration JSON file.")
         else:
             pass
 
@@ -205,14 +205,14 @@ class ConfigurationGenerator:
         if isinstance(user_components_name, list):
             for user_component_name in user_components_name:
                 self._components[user_component_name] = self.preloaded_components[user_component_name]
-                logging.info("Component {} has been added to the configuration JSON file.".format(user_component_name))
+                #logging.info("Component {} has been added to the configuration JSON file.".format(user_component_name))
         elif isinstance(user_components_name, dict):
             for user_component_name, parameters in user_components_name.items():
                 self._components[user_component_name] = parameters
-                logging.info("Component {} has been added to the configuration JSON file.".format(user_component_name))
+                #logging.info("Component {} has been added to the configuration JSON file.".format(user_component_name))
         else:
             self._components[user_components_name] = self.preloaded_components[user_components_name]
-            logging.info("Component {} has been added to configuration JSON file.".format(user_components_name))
+            #logging.info("Component {} has been added to configuration JSON file.".format(user_components_name))
 
     def add_grouping(self, grouping_components: ComponentsGrouping):
         """
@@ -236,7 +236,7 @@ class ConfigurationGenerator:
         grouping_components: ComponentsGrouping
         """
         self._groupings[grouping_components.component_name] = grouping_components.configuration
-        logging.info("Component Grouping {} has been created.".format(grouping_components.component_name))
+        #logging.info("Component Grouping {} has been created.".format(grouping_components.component_name))
 
     def add_connection(self, connection_components: ComponentsConnection):
         """
@@ -258,7 +258,7 @@ class ConfigurationGenerator:
                                                       connection_components.first_component,
                                                       connection_components.second_component)
         self._connections[connection_name] = connection_components.configuration
-        logging.info("{} and {} have been connected ")
+        #logging.info("{} and {} have been connected ")
 
     def add_paramater_range(self, parameter_range):
         self._parameters_range_studies.update(parameter_range)
@@ -286,10 +286,10 @@ class ConfigurationGenerator:
 
     def run(self):
         hisim.main("cfg_automator", "basic_household_implicit")
-
+    #@Max
     def run_parameter_studies(self):
         for component_class, parameter_name_and_range in self._parameters_range_studies.items():
-            logging.info("Performing parameter study of component {}".format(component))
+            #logging.info("Performing parameter study of component {}".format(component))
             parameters_range_studies_entry = copy.deepcopy(self._parameters_range_studies)
             if isinstance(parameter_name_and_range, dict):
                 for parameter_name, range in parameter_name_and_range.items():

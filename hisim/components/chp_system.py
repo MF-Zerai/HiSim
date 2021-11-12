@@ -88,7 +88,7 @@ class CHP(Component):
     NumberofCycles = "NumberofCycles"
     ThermalOutputPower = "ThermalOutputPower"
     GasDemandReal="GasDemandReal"
-    def __init__(self, name="CHP",min_operation_time=60, min_idle_time=15,gas_type="Hydrogen",operating_mode="both"):
+    def __init__(self, name="CHP",min_operation_time=60, min_idle_time=15,gas_type="Hydrogen",operating_mode="both",p_el_max=3600):
         super().__init__(name)
         self.min_operation_time = min_operation_time
         self.min_idle_time = min_idle_time
@@ -100,10 +100,11 @@ class CHP(Component):
         self.state = CHPState(start_timestep=int(0),cycle_number=0)
         self.previous_state = copy.deepcopy(self.state)
 
-        self.P_th_min = CHPConfig.P_th_min
-        self.P_el_min = CHPConfig.P_el_min
-        self.P_el_max = CHPConfig.P_el_max
-        self.P_th_max = CHPConfig.P_th_max
+        #the 3600 comes from Normalised chp from p_el_max=3600. Look up chp_system_lib for more information
+        self.P_th_min = (p_el_max/3600)*850
+        self.P_el_min = (p_el_max/3600)*500
+        self.P_el_max = p_el_max
+        self.P_th_max = (p_el_max/3600)*1980
 
         self.eff_th_min = CHPConfig.eff_th_min
         self.eff_th_max = CHPConfig.eff_th_max

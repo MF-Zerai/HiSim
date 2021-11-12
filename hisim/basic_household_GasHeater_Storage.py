@@ -39,7 +39,7 @@ def basic_household(my_sim):
 
     # Set simulation parameters
     year = 2021
-    seconds_per_timestep = 60
+    seconds_per_timestep = 60*15
 
     # Set weather
     location = "Aachen"
@@ -74,15 +74,15 @@ def basic_household(my_sim):
     my_sim.set_parameters(my_sim_params)
 
      # Build heat demand
-    csv_load_heat_demand = CSVLoader(component_name="csv_load_heat_demand",
-                                      csv_filename="loadprofiles/EFH_Bestand_TRY_5_Profile_1min.csv",
-                                      column=1,
-                                      loadtype=loadtypes.LoadTypes.WarmWater,
+    csv_load_power_demand = CSVLoader(component_name="csv_load_power",
+                                      csv_filename="loadprofiles/vdi-4655_mfh-existing_try-1_15min.csv",
+                                      column=0,
+                                      loadtype=loadtypes.LoadTypes.Electricity,
                                       unit=loadtypes.Units.Watt,
-                                      column_name="heat_demand",
+                                      column_name='"electricity demand, house [W]"',
                                       simulation_parameters=my_sim_params,
-                                      multiplier=10000/ 1000)
-    my_sim.add_component(csv_load_heat_demand)
+                                      multiplier=6)
+    my_sim.add_component(csv_load_power_demand)
     my_rn1 = random_numbers.RandomNumbers (name="Random numbers 100-200",
                         timesteps=my_sim_params.timesteps,
                         minimum=1000,

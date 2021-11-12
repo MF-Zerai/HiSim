@@ -91,7 +91,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
 
     #ElectricityDemand
     csv_load_power_demand = CSVLoader(component_name="csv_load_power",
-                                      csv_filename="Lastprofile/SOSO/Orginal/EFH_Bestand_TRY_5_Profile_1min.csv",
+                                      csv_filename="Lloadprofiles/EFH_Bestand_TRY_5_Profile_1min.csv",
                                       column=0,
                                       loadtype=loadtypes.LoadTypes.Electricity,
                                       unit=loadtypes.Units.Watt,
