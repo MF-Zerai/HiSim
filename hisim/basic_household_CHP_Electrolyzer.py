@@ -17,7 +17,7 @@ from components import advanced_battery
 from components import configuration
 from components import chp_system
 from components.hydrogen_generator import Electrolyzer ,HydrogenStorage
-from components.csvloader import CSVLoader
+from components.csvloader import CSVLoaderEL
 from components.configuration import HydrogenStorageConfig, ElectrolyzerConfig
 
 
@@ -102,7 +102,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_sim.set_parameters(my_sim_params)
 
     #ElectricityDemand
-    csv_load_power_demand = CSVLoader(component_name="csv_load_power",
+    csv_load_power_demand = CSVLoaderEL(component_name="csv_load_power",
                                       csv_filename="loadprofiles/vdi-4655_mfh-existing_try-1_15min.csv",
                                       column=0,
                                       loadtype=loadtypes.LoadTypes.Electricity,

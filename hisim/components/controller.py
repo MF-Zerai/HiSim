@@ -55,7 +55,8 @@ class Controller(cp.Component):
                  temperature_storage_target_hysteresis_ww=30,
                  temperature_storage_target_hysteresis_hw=50,
                  strategy = "optimize_own_consumption",
-                 limit_to_shave=0):
+                 limit_to_shave=0,
+                 percentage_to_shave=0):
         super().__init__("Controller")
 
         self.temperature_storage_target_warm_water=temperature_storage_target_warm_water
@@ -288,8 +289,9 @@ class Controller(cp.Component):
 
             if delta_demand - limit_to_shave - stsv.get_input_value(
                 self.electricity_to_or_from_battery_real) > 0:
-                check_peak_shaving = 1
-
+                check_peak_shaving = 1 # Peak Shaving didnt work
+            else:
+                check_peak_shaving = 0
         elif delta_demand<0:
             electricity_to_or_from_battery_target=delta_demand
 
@@ -365,13 +367,12 @@ class Controller(cp.Component):
         if force_convergence:
             return
         ###ELECTRICITY
-        if timestep== 60*24*3.5:
-            print(2)
-        limit_to_shave=self.limit_to_shave * seconds_per_timestep
+        limit_to_shave=self.limit_to_shave
         # Production of Electricity positve sign
         # Consumption of Electricity negative sign
         delta_demand = stsv.get_input_value(self.electricity_output_pvs) - stsv.get_input_value(self.electricity_consumption_building) -stsv.get_input_value(self.electricity_demand_heat_pump)
-
+        if timestep==60*24*120+12*60:
+            print(stsv.get_input_value(self.electricity_output_pvs))
         if self.strategy == "optimize_own_consumption":
             self.optimize_own_consumption(delta_demand=delta_demand,stsv=stsv)
         elif self.strategy == "seasonal_storage":

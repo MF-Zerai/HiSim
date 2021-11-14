@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-
+import globals
 # Owned
 from component import Component, SingleTimeStepValues, ComponentInput, ComponentOutput
 import loadtypes as lt

@@ -30,7 +30,7 @@ class HydrogenStorageConfig:
 
 class ElectrolyzerConfig:
     waste_energy = 400                    # [W]   # 400
-    min_power = 1_400                     # [W]   # 1400
+    min_power = 1_200                     # [W]   # 1400
     max_power = 2_400                  # [W]   # 2400
     min_power_percent = 60            # [%]
     max_power_percent = 100             # [%]
@@ -159,7 +159,7 @@ class Electrolyzer(Component):
     ElectrolyzerEfficiency = "Electrolyzer Efficiency"  # -
     PowerLevel = "Power Level"                          # %
 
-    def __init__(self, component_name, seconds_per_timestep,power_electrolyzer):
+    def __init__(self, component_name:str, power_electrolyzer:int,my_simulation_parameters):
         super().__init__(component_name)
         # input
         self.hydrogen_not_stored: ComponentInput = self.add_input(self.ComponentName, Electrolyzer.HydrogenNotStored, lt.LoadTypes.Hydrogen, lt.Units.kg, True)
@@ -176,7 +176,7 @@ class Electrolyzer(Component):
 
         # self
         self.electrolyzer = ElectrolyzerSimulation(power_electrolyzer)
-        self.seconds_per_timestep = seconds_per_timestep
+        self.seconds_per_timestep = my_simulation_parameters.seconds_per_timestep
         self.previous_state = 0
         self.power_electrolyzer=power_electrolyzer
     def i_save_state(self):
@@ -388,7 +388,7 @@ class HydrogenStorage(Component):
 
 
 
-    def __init__(self, component_name, seconds_per_timestep,max_capacity):
+    def __init__(self, component_name: str, my_simulation_parameters,max_capacity:int):
         super().__init__(component_name)
         self.charging_hydrogen: ComponentInput = self.add_input(self.ComponentName, HydrogenStorage.ChargingHydrogenAmount, lt.LoadTypes.Hydrogen, lt.Units.kg_per_sec, True)
         self.discharging_hydrogen: ComponentInput = self.add_input(self.ComponentName, HydrogenStorage.DischargingHydrogenAmountTarget, lt.LoadTypes.Hydrogen, lt.Units.kg_per_sec, False)
@@ -404,7 +404,7 @@ class HydrogenStorage(Component):
 
         self.hydrogenstorage = HydrogenStorageSimulation(max_capacity)
         self.max_capacity = max_capacity
-        self.seconds_per_timestep = seconds_per_timestep
+        self.seconds_per_timestep = my_simulation_parameters.seconds_per_timestep
         self.previous_state = 0
 
     def i_save_state(self):

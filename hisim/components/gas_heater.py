@@ -32,7 +32,7 @@ class GasHeater(Component):
     GasDemand = "GasDemand"
     ThermalOutputPower="ThermalOutputPower"
 
-    def __init__(self,temperaturedelta=10):
+    def __init__(self,temperaturedelta=10,power_max=12_000):
         super().__init__("GasHeater")
         self.control_signal: ComponentInput = self.add_input(self.ComponentName, GasHeater.ControlSignal, lt.LoadTypes.Any, lt.Units.Percent, True)
         self.mass_inp_temp: ComponentInput = self.add_input(self.ComponentName, GasHeater.MassflowInputTemperature, lt.LoadTypes.Water, lt.Units.Celsius, True)
@@ -47,7 +47,7 @@ class GasHeater(Component):
                                                      unit=lt.Units.Watt)
 
         self.P_th_min = GasHeaterConfig.P_th_min
-        self.P_th_max = GasHeaterConfig.P_th_max
+        self.P_th_max = power_max
         self.eff_th_min = GasHeaterConfig.eff_th_min
         self.eff_th_max = GasHeaterConfig.eff_th_max
         self.temperature_max = GasHeaterConfig.temperature_max

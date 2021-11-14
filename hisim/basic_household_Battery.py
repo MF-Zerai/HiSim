@@ -15,7 +15,7 @@ from components import storage
 from components import pvs
 from components import advanced_battery
 from components import configuration
-
+import globals
 from components.csvloader import CSVLoader
 
 
@@ -91,7 +91,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
 
     #ElectricityDemand
     csv_load_power_demand = CSVLoader(component_name="csv_load_power",
-                                      csv_filename="Lloadprofiles/EFH_Bestand_TRY_5_Profile_1min.csv",
+                                      csv_filename="loadprofiles/EFH_Bestand_TRY_5_Profile_1min.csv",
                                       column=0,
                                       loadtype=loadtypes.LoadTypes.Electricity,
                                       unit=loadtypes.Units.Watt,
@@ -118,12 +118,12 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     '''
     #Build Battery
     fparameter = np.load(globals.HISIMPATH["bat_parameter"])
-    my_battery = advanced_battery.AdvancedBattery(parameter=fparameter,sim_params=my_sim_params,capacity=capacity)                                    
+    my_battery = advanced_battery.AdvancedBattery(my_simulation_parameters=my_sim_params,capacity=capacity)
 
 
 
     #Build Controller
-    my_controller = controller.Controller(strategy= "peak_shaving_into_grid",limit_to_shave=4)
+    my_controller = controller.Controller(strategy= "peak_shaving_into_grid",limit_to_shave=10000*0.5)
     '''
         residual_power = CSVLoader(component_name="residual_power",
                                csv_filename="advanced_battery/Pr_ideal_1min.csv",
@@ -216,7 +216,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
                                           module_name=module_name,
                                           integrateInverter=integrateInverter,
                                           inverter_name=inverter_name,
-                                          sim_params=my_sim_params)
+                                          my_simulation_parameters=my_sim_params)
     my_photovoltaic_system.connect_input(my_photovoltaic_system.TemperatureOutside,
                                          my_weather.ComponentName,
                                          my_weather.TemperatureOutside)

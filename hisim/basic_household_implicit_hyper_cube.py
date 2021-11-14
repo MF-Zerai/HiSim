@@ -1,7 +1,7 @@
 import inspect
 import numpy as np
 import os
-import globals
+
 import pandas as pd
 import lhsmdu
 from random import randrange
@@ -15,6 +15,8 @@ from components import chp_system
 from components import advanced_battery
 from components import controller
 from components import heat_pump_hplib
+from components import hydrogen_generator
+
 
 from components import building
 #from components import heat_pump
@@ -33,15 +35,16 @@ __email__ = "vitor.zago@rwth-aachen.de"
 __status__ = "development"
 
 
-
-def basic_household_implicit_chp(my_sim: sim.Simulator):
+####DIRTY CODE->nightshift
+###Has to be automized an reworked
+def basic_household_implicit_hyper_cube(my_sim: sim.Simulator):
     my_setup_function = SetupFunction()
     my_setup_function.build(my_sim)
 
 if __name__ == '__main__':
     import pyDOE
 
-    lhs_field=lhsmdu.sample(9, 1)
+    lhs_field=lhsmdu.sample(10, 5)
     z=1
     while z <= lhs_field.shape[1]:
         x=z-1
@@ -55,9 +58,11 @@ if __name__ == '__main__':
         lhs_factor_setup_var=int(lhs_field[4,x]//(1/3)) #either exact [0,1,2] 0=HP, 1=CHP+GH, 2=CHP+GH+ELCT+H2ST
         lhs_factor_heat_demand_relative_to_moderness=int(lhs_field[5,x]//(1/3)) #either exact [0,1,2]
         lhs_factor_which_house=int(lhs_field[6,x]//(1/2)) #either exact [0,1]
-        lhs_factor_weather_region=int(lhs_field[7,x]//(1/15))   #either exact [0,1,2,3...13,14]
+        lhs_factor_weather_region=int(lhs_field[7,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
         lhs_factor_control_strategy=int(lhs_field[8,x]//(1/2)) #either[0,1]
 
+        lhs_factor_control_strategy=0
+        lhs_factor_percentage_to_peak_shave=int(lhs_field[9,x]//(1/3))
         #Choose house and calculate specific HeatWater/WarmWater/Electricity demand
         factor_which_house=["sfh" , "mfh"]
         if factor_which_house[lhs_factor_which_house] == "sfh":
@@ -70,13 +75,18 @@ if __name__ == '__main__':
         elif factor_which_house[lhs_factor_which_house] == "mfh":
             factor_electricity=9000 + (75000-9000)*lhs_factor_demand #in kWh yearly
             factor_warm_water=3000+ (25000-3000)*lhs_factor_demand #in kWh yearly
-            size_building=(2+(25-2)*lhs_factor_demand) # in m^2
+            size_building=(2+(25-2)*lhs_factor_demand)*70 # in m^2
             factor_heating_water= size_building * 50  #50kWh/m^2, all in kWh
 
 
         #pv and battery is in every set_up
-        battery_capacity= 0.1 + (8-0.1)*lhs_factor_battery/1000 #in kWh
-        power_pv=0.1+(8-0.1)*lhs_factor_pv/1000 #in kW
+        battery_capacity= (0.001 + (6-0.001)*lhs_factor_battery)*factor_electricity/1000 #in kWh
+        power_pv=(0.001+(3-0.001)*lhs_factor_pv)*factor_electricity/1000#in kW
+
+        #Percentage_to-Peak_shave
+        percentage_to_peak_shave=[0,0.35,0.7]   #Peak shaving from 0% into grid up to 70% regarding PVS
+        percentage_to_peak_shave_var= percentage_to_peak_shave[lhs_factor_percentage_to_peak_shave]
+        limit_peak_shave=int(power_pv*percentage_to_peak_shave[lhs_factor_percentage_to_peak_shave])
 
         ###Define additional Setup of House
         file_name="HiSim/hisim/inputs/loadprofiles/vdi-4655_mfh-existing_try-1_15min.csv"
@@ -98,22 +108,30 @@ if __name__ == '__main__':
             x = x + 1
 
         # Calculate Average Heating demand of the day
-        power_hp = 1.2 * highest_heat_demand *factor_heating_water / 1000  # in kW
-        power_gh = 1.2 * highest_heat_demand *factor_heating_water / 1000  # in Kw
+        power_hp = 1.2 * highest_heat_demand *factor_heating_water/1000  # in W
+        power_gh = 1.2 * highest_heat_demand *factor_heating_water/1000  # in w
 
         if factor_which_house[lhs_factor_which_house] == "sfh":
-            power_chp=factor_heating_water*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
+            power_chp=factor_heating_water/1000*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
             power_elekt=power_chp*2
 
 
         elif factor_which_house[lhs_factor_which_house] == "mfh":
-            power_chp =factor_heating_water*0.1*(np.mean(column_sum_heating))*8.76/1000   # [kWel]
+            power_chp =factor_heating_water/1000*0.1*(np.mean(column_sum_heating))*8.76/1000   # [kWel]
             power_elekt=power_chp*2
 
         #setup_storage_size
-        storage_size_ww=0.2*sum(column_domestic_water_demand)*(15/60)/1000 #in litres
-        storage_size_hw=55 * (power_chp+power_gh+power_hp)  #55litre per each kW power heaters
-        my_hydrogen_storage= 200*power_elekt/2.4 + 2000*power_elekt/2.4* lhs_factor_storage_h2
+        storage_size_ww=0.2*factor_warm_water #in litres
+
+        if lhs_factor_setup_var==0:
+            storage_size_hw=100 * (power_hp)/1000#55litre per each kW power heaters
+        else:
+            storage_size_hw = 100 * (power_chp+power_gh)/1000 #55litre per each kW power heaters
+        if storage_size_hw<500:
+            storage_size_hw=500
+        my_hydrogen_storage_size= 200*power_elekt/2.4 + 2000*power_elekt/2.4* lhs_factor_storage_h2
+        if my_hydrogen_storage_size < 1:
+            my_hydrogen_storage_size=1
 
 
         # Create Simulation SetUp
@@ -142,7 +160,7 @@ if __name__ == '__main__':
                                              "multiplier": int(factor_heating_water)/1000}}
         my_cfg.add_component(my_csv_loader_heating_water)
 
-        my_csv_loader_electricity = {"CSVLoaderEL": {"component_name": "csv_load_power_el",
+        my_csv_loader_electricity = {"CSVLoader": {"component_name": "csv_load_power_el",
                                              "csv_filename": os.path.join("loadprofiles", "vdi-4655_"+str(factor_which_house[lhs_factor_which_house])+"-existing_try-"+str(lhs_factor_weather_region)+"_15min.csv"),
                                              "column": 1,
                                              "loadtype": loadtypes.LoadTypes.Electricity,
@@ -155,7 +173,7 @@ if __name__ == '__main__':
         my_cfg.add_component("Weather")
 
         #PVS
-        my_pvs = {"PVSystem": {"power": int(power_pv)*1000}}
+        my_pvs = {"PVSystem": {"power": int(power_pv*1000)}}
         my_cfg.add_component(my_pvs)
 
         my_battery = {"AdvancedBattery": {"capacity": int(battery_capacity)}}
@@ -169,15 +187,18 @@ if __name__ == '__main__':
         my_cfg.add_component(my_heat_storage)
 
 
-        possible_control_strategies=["optimize_own_consumption", "peak_shaving_into_grid","seasonal_storage"]
-        #Controller
+        possible_control_strategies=["optimize_own_consumption", "peak_shaving_into_grid"]
+        if possible_control_strategies[lhs_factor_control_strategy] == "optimize_own_consumption" or lhs_factor_setup_var==2:
+            limit_peak_shave=0
+            percentage_to_peak_shave_var=0
         if lhs_factor_setup_var==0: #HP
             my_controller = {"Controller": {"temperature_storage_target_warm_water": 35,
                                               "temperature_storage_target_heating_water": 55,
                                               "temperature_storage_target_hysteresis_ww": 30,
                                               "temperature_storage_target_hysteresis_hw": 50,
                                               "strategy": possible_control_strategies[lhs_factor_control_strategy],
-                                              "limit_to_shave": 0}}
+                                              "limit_to_shave": limit_peak_shave,
+                                              "percentage_to_shave": percentage_to_peak_shave_var}}
             my_cfg.add_component(my_controller)
 
             #heat pump
@@ -209,7 +230,7 @@ if __name__ == '__main__':
             my_cfg.add_connection(my_pvs_to_controller)
 
             # Outputs from CSVLoader Electricity
-            my_csv_to_controller_a = ComponentsConnection(first_component="CSVLoaderEL",
+            my_csv_to_controller_a = ComponentsConnection(first_component="CSVLoader",
                                                           second_component="Controller",
                                                           method="Manual",
                                                           first_component_output="Output1",
@@ -312,7 +333,8 @@ if __name__ == '__main__':
                                               "temperature_storage_target_hysteresis_ww": 30,
                                               "temperature_storage_target_hysteresis_hw": 50,
                                               "strategy": possible_control_strategies[lhs_factor_control_strategy],
-                                              "limit_to_shave": 0}}
+                                              "limit_to_shave": limit_peak_shave,
+                                              "percentage_to_shave": percentage_to_peak_shave_var}}
             my_cfg.add_component(my_controller)
 
             # CHP
@@ -324,7 +346,8 @@ if __name__ == '__main__':
             my_cfg.add_component(my_chp)
 
             # GasHeater
-            my_gas_heater = {"GasHeater": {"temperaturedelta": 10}}
+            my_gas_heater = {"GasHeater": {"temperaturedelta": 10,
+                             "power_max": int(power_gh)}}
             my_cfg.add_component(my_gas_heater)
 
             # Set connections
@@ -356,6 +379,13 @@ if __name__ == '__main__':
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandHeatingWater")
+            # Outputs from Battery
+            my_battery_to_controller = ComponentsConnection(first_component="Controller",
+                                                            second_component="AdvancedBattery",
+                                                            method="Manual",
+                                                            first_component_output="ElectricityToOrFromBatteryTarget",
+                                                            second_component_input="LoadingPowerInput")
+            my_cfg.add_connection(my_battery_to_controller)
 
             # Outputs from Storage
             my_storage_to_controller_a = ComponentsConnection(first_component="HeatStorage",
@@ -455,8 +485,8 @@ if __name__ == '__main__':
                                               "temperature_storage_target_heating_water": 55,
                                               "temperature_storage_target_hysteresis_ww": 30,
                                               "temperature_storage_target_hysteresis_hw": 50,
-                                              "strategy": possible_control_strategies[lhs_factor_control_strategy],
-                                              "limit_to_shave": 0}}
+                                              "strategy": "seasonal_storage",
+                                              "percentage_to_shave": percentage_to_peak_shave_var}}
             my_cfg.add_component(my_controller)
 
             #CHP
@@ -468,18 +498,20 @@ if __name__ == '__main__':
             my_cfg.add_component(my_chp)
 
             # GasHeater
-            my_gas_heater = {"GasHeater": {"temperaturedelta": 10}}
+            my_gas_heater = {"GasHeater": {"temperaturedelta": 10,
+                                           "power_max": int(power_gh)}}
             my_cfg.add_component(my_gas_heater)
 
+            my_hydrogen_storage = {"HydrogenStorage": {"component_name": "HydrogenStorage",
+                                                       "max_capacity": int(my_hydrogen_storage_size)}}
+            my_cfg.add_component(my_hydrogen_storage)
             #Electrolyzer
             my_electrolyzer = {"Electrolyzer": {"component_name": "Electrolyzer",
-                                                "power_electrolyzer": int(power_elekt)}}
+                                                "power_electrolyzer": int(power_elekt*1000)}}
             my_cfg.add_component(my_electrolyzer)
 
             #Hydrogen Storage
-            my_hydrogen_storage = {"HydrogenStorage": {"component_name": "HydrogenStorage",
-                                                       "max_capacity": int(my_hydrogen_storage) }}
-            my_cfg.add_component(my_hydrogen_storage)
+
 
             # Set connections
             my_connection_component = ComponentsConnection(first_component="Weather",
@@ -542,6 +574,14 @@ if __name__ == '__main__':
                                                      second_component_input="MassflowInputTemperature")
             my_cfg.add_connection(my_storage_to_chp)
 
+            # Outputs from Battery
+            my_battery_to_controller = ComponentsConnection(first_component="Controller",
+                                                            second_component="AdvancedBattery",
+                                                            method="Manual",
+                                                            first_component_output="ElectricityToOrFromBatteryTarget",
+                                                            second_component_input="LoadingPowerInput")
+            my_cfg.add_connection(my_battery_to_controller)
+
             # Outputs from CHP
 
             my_chp_to_controller_a = ComponentsConnection(first_component="CHP",
@@ -586,7 +626,7 @@ if __name__ == '__main__':
                                                           method="Manual",
                                                           first_component_output="HydrogenNotStored",
                                                           second_component_input="HydrogenNotStored")
-            my_cfg.add_connection(my_electrolyzer_to_hydrogen_storage)
+            my_cfg.add_connection(my_hydrogen_storage_to_electrolyzer)
 
             my_electrolyzer_to_controller = ComponentsConnection(first_component="Electrolyzer",
                                                           second_component="Controller",
@@ -599,7 +639,7 @@ if __name__ == '__main__':
                                                           method="Manual",
                                                           first_component_output="ElectricityToElectrolyzerTarget",
                                                           second_component_input="ElectricityInput")
-            my_cfg.add_connection(my_electrolyzer_to_hydrogen_storage)
+            my_cfg.add_connection(my_controller_to_electrolyzer)
 
 
             # Outputs from GasHeater
@@ -613,10 +653,10 @@ if __name__ == '__main__':
 
             # Outputs from Controller
             my_controller_to_battery = ComponentsConnection(first_component="AdvancedBattery",
-                                                     second_component="Controller",
-                                                     method="Manual",
-                                                     first_component_output="ACBatteryPower",
-                                                     second_component_input="ElectricityToOrFromBatteryReal")
+                                                            second_component="Controller",
+                                                            method="Manual",
+                                                            first_component_output="ACBatteryPower",
+                                                            second_component_input="ElectricityToOrFromBatteryReal")
             my_cfg.add_connection(my_controller_to_battery)
 
             my_controller_to_chp_a = ComponentsConnection(first_component="Controller",
@@ -651,7 +691,7 @@ if __name__ == '__main__':
 
         # Export configuration file
         my_cfg.dump()
-        os.system("python hisim.py basic_household_implicit_chp basic_household_implicit_chp")
+        os.system("python hisim.py basic_household_implicit_hyper_cube basic_household_implicit_hyper_cube")
 
 
 
