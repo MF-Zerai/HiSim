@@ -12,7 +12,7 @@ from components import storage
 from components import random_numbers
 from components import gas_heater
 from components import chp_system
-from components.csvloader import CSVLoader
+from components.demand_el import CSVLoader
 __authors__ = "Max Hillen, Tjarko Tjaden"
 __copyright__ = "Copyright 2021, the House Infrastructure Project"
 __credits__ = ["Noah Pflugradt"]

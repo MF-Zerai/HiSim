@@ -13,7 +13,7 @@ from components import advanced_battery
 from components import configuration
 from components import chp_system
 from components.hydrogen_generator import Electrolyzer ,HydrogenStorage
-from components.csvloader import CSVLoader
+from components.demand_el import CSVLoader
 from components.configuration import HydrogenStorageConfig, ElectrolyzerConfig
 import simulator as sim
 import loadtypes

@@ -16,7 +16,7 @@ from components import advanced_battery
 from components import controller
 from components import heat_pump_hplib
 from components import hydrogen_generator
-
+from components import demand_el
 
 from components import building
 #from components import heat_pump
@@ -61,7 +61,6 @@ if __name__ == '__main__':
         lhs_factor_weather_region=int(lhs_field[7,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
         lhs_factor_control_strategy=int(lhs_field[8,x]//(1/2)) #either[0,1]
 
-        lhs_factor_control_strategy=0
         lhs_factor_percentage_to_peak_shave=int(lhs_field[9,x]//(1/3))
         #Choose house and calculate specific HeatWater/WarmWater/Electricity demand
         factor_which_house=["sfh" , "mfh"]
@@ -160,7 +159,7 @@ if __name__ == '__main__':
                                              "multiplier": int(factor_heating_water)/1000}}
         my_cfg.add_component(my_csv_loader_heating_water)
 
-        my_csv_loader_electricity = {"CSVLoader": {"component_name": "csv_load_power_el",
+        my_csv_loader_electricity = {"CSVLoaderEL": {"component_name": "csv_load_power_el",
                                              "csv_filename": os.path.join("loadprofiles", "vdi-4655_"+str(factor_which_house[lhs_factor_which_house])+"-existing_try-"+str(lhs_factor_weather_region)+"_15min.csv"),
                                              "column": 1,
                                              "loadtype": loadtypes.LoadTypes.Electricity,
@@ -230,21 +229,26 @@ if __name__ == '__main__':
             my_cfg.add_connection(my_pvs_to_controller)
 
             # Outputs from CSVLoader Electricity
-            my_csv_to_controller_a = ComponentsConnection(first_component="CSVLoader",
+            my_csv_to_controller_a = ComponentsConnection(first_component="CSVLoaderEL",
                                                           second_component="Controller",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ElectricityConsumptionBuilding")
+            my_cfg.add_connection(my_csv_to_controller_a)
+
             my_csv_to_controller_b = ComponentsConnection(first_component="CSVLoaderWW",
-                                                          second_component="Storage",
+                                                          second_component="HeatStorage",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandWarmWater")
+            my_cfg.add_connection(my_csv_to_controller_b)
+
             my_csv_to_controller_c = ComponentsConnection(first_component="CSVLoaderHW",
-                                                          second_component="Storage",
+                                                          second_component="HeatStorage",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandHeatingWater")
+            my_cfg.add_connection(my_csv_to_controller_c)
 
             # Outputs from Weather
             my_weather_to_heat_pump_a = ComponentsConnection(first_component="Weather",
@@ -369,16 +373,22 @@ if __name__ == '__main__':
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ElectricityConsumptionBuilding")
+            my_cfg.add_connection(my_csv_to_controller_a)
+
             my_csv_to_controller_b = ComponentsConnection(first_component="CSVLoaderWW",
-                                                          second_component="Storage",
+                                                          second_component="HeatStorage",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandWarmWater")
+            my_cfg.add_connection(my_csv_to_controller_b)
+
             my_csv_to_controller_c = ComponentsConnection(first_component="CSVLoaderHW",
-                                                          second_component="Storage",
+                                                          second_component="HeatStorage",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandHeatingWater")
+            my_cfg.add_connection(my_csv_to_controller_c)
+
             # Outputs from Battery
             my_battery_to_controller = ComponentsConnection(first_component="Controller",
                                                             second_component="AdvancedBattery",
@@ -534,16 +544,21 @@ if __name__ == '__main__':
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ElectricityConsumptionBuilding")
+            my_cfg.add_connection(my_csv_to_controller_a)
+
             my_csv_to_controller_b = ComponentsConnection(first_component="CSVLoaderWW",
-                                                          second_component="Storage",
+                                                          second_component="HeatStorage",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandWarmWater")
+            my_cfg.add_connection(my_csv_to_controller_b)
+
             my_csv_to_controller_c = ComponentsConnection(first_component="CSVLoaderHW",
-                                                          second_component="Storage",
+                                                          second_component="HeatStorage",
                                                           method="Manual",
                                                           first_component_output="Output1",
                                                           second_component_input="ThermalDemandHeatingWater")
+            my_cfg.add_connection(my_csv_to_controller_c)
 
             # Outputs from Storage
             my_storage_to_controller_a = ComponentsConnection(first_component="HeatStorage",

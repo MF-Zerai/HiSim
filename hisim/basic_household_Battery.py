@@ -16,7 +16,7 @@ from components import pvs
 from components import advanced_battery
 from components import configuration
 import globals
-from components.csvloader import CSVLoader
+from components.demand_el import CSVLoader
 
 
 __authors__ = "Max Hillen, Tjarko Tjaden"

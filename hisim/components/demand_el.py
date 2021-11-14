@@ -4,11 +4,11 @@ import os
 
 import loadtypes as lt
 import globals
-import component as cp
+from component import Component, SingleTimeStepValues, ComponentInput, ComponentOutput
 
 
 
-class CSVLoader(cp.Component):
+class DemandEl(Component):
     """
     Class component loads CSV file containing some
     load profile relevant to the applied setup
@@ -49,13 +49,12 @@ class CSVLoader(cp.Component):
                  loadtype: lt.LoadTypes,
                  unit: lt.Units,
                  column_name: str,
-                 simulation_parameters: cp.SimulationParameters,
                  sep: str = ";",
                  decimal: str = ".",
                  multiplier: float = 1):
         super().__init__(name=component_name)
 
-        self.output1 : cp.ComponentOutput = self.add_output(self.ComponentName,
+        self.output1 : ComponentOutput = self.add_output(self.ComponentName,
                                             self.Output1,
                                             loadtype,
                                             unit)
@@ -66,8 +65,8 @@ class CSVLoader(cp.Component):
         df = pd.read_csv(os.path.join(globals.HISIMPATH["inputs"], csv_filename))
         dfcolumn = df.iloc[:, [column]]
 
-        if len(dfcolumn) < simulation_parameters.timesteps:
-            raise Exception("Timesteps: " + str(simulation_parameters.timesteps) + " vs. Lines in CSV " + csv_filename + ": " + str(len(self.column)))
+        #if len(dfcolumn) < my_simulation_parameters.timesteps:
+        #    raise Exception("Timesteps: " + str(my_simulation_parameters.timesteps) + " vs. Lines in CSV " + csv_filename + ": " + str(len(self.column)))
 
         self.column = dfcolumn.to_numpy(dtype=float)
         self.values: List[float] = []
@@ -75,11 +74,11 @@ class CSVLoader(cp.Component):
     def i_restore_state(self):
         pass
 
-    def i_simulate(self, timestep: int, stsv: cp.SingleTimeStepValues, seconds_per_timestep: int, force_convergence: bool):
+    def i_simulate(self, timestep: int, stsv: SingleTimeStepValues, seconds_per_timestep: int, force_convergence: bool):
         stsv.set_output_value(self.output1, float(self.column[timestep]) * self.multiplier)
 
     def i_save_state(self):
         pass
 
-    def i_doublecheck(self, timestep: int, stsv: cp.SingleTimeStepValues):
+    def i_doublecheck(self, timestep: int, stsv: SingleTimeStepValues):
         pass
