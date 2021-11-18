@@ -379,6 +379,9 @@ class Simulator:
                 json.dump(self._cfg, f, indent=4)
 
         time_correction_factor = 1/self.SimulationParameters.seconds_per_timestep
+
+        to_be_pickle = {"results": self.results}
+        '''
         to_be_pickle = {"time_correction_factor" : time_correction_factor,
                         "directory_path": self.dirpath,
                         "results": self.results,
@@ -391,7 +394,7 @@ class Simulator:
                         "setup_function": self.setup_function,
                         "execution_time": self.execution_time,
                         "results_m": self.results_m}
-
+        '''
         with open(os.path.join(self.dirpath, "data.pkl"), "wb") as output:
             pickle.dump(to_be_pickle, output, pickle.HIGHEST_PROTOCOL)
 

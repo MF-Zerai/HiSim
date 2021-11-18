@@ -4,11 +4,9 @@ import os
 
 import loadtypes as lt
 import globals
-from component import Component, SingleTimeStepValues, ComponentInput, ComponentOutput
+import component as cp
 
-
-
-class DemandEl(Component):
+class DemandEL(cp.Component):
     """
     Class component loads CSV file containing some
     load profile relevant to the applied setup
@@ -54,7 +52,7 @@ class DemandEl(Component):
                  multiplier: float = 1):
         super().__init__(name=component_name)
 
-        self.output1 : ComponentOutput = self.add_output(self.ComponentName,
+        self.output1 : cp.ComponentOutput = self.add_output(self.ComponentName,
                                             self.Output1,
                                             loadtype,
                                             unit)
@@ -65,8 +63,8 @@ class DemandEl(Component):
         df = pd.read_csv(os.path.join(globals.HISIMPATH["inputs"], csv_filename))
         dfcolumn = df.iloc[:, [column]]
 
-        #if len(dfcolumn) < my_simulation_parameters.timesteps:
-        #    raise Exception("Timesteps: " + str(my_simulation_parameters.timesteps) + " vs. Lines in CSV " + csv_filename + ": " + str(len(self.column)))
+        #if len(dfcolumn) < simulation_parameters.timesteps:
+        #    raise Exception("Timesteps: " + str(simulation_parameters.timesteps) + " vs. Lines in CSV " + csv_filename + ": " + str(len(self.column)))
 
         self.column = dfcolumn.to_numpy(dtype=float)
         self.values: List[float] = []
@@ -74,11 +72,12 @@ class DemandEl(Component):
     def i_restore_state(self):
         pass
 
-    def i_simulate(self, timestep: int, stsv: SingleTimeStepValues, seconds_per_timestep: int, force_convergence: bool):
+    def i_simulate(self, timestep: int, stsv: cp.SingleTimeStepValues, seconds_per_timestep: int, force_convergence: bool):
         stsv.set_output_value(self.output1, float(self.column[timestep]) * self.multiplier)
 
     def i_save_state(self):
         pass
 
-    def i_doublecheck(self, timestep: int, stsv: SingleTimeStepValues):
+    def i_doublecheck(self, timestep: int, stsv: cp.SingleTimeStepValues):
         pass
+

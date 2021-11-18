@@ -71,10 +71,10 @@ class HeatStorage(Component):
                                                                          True)
 
 
-        self.demand_warm_water : ComponentInput = self.add_input(self.ComponentName,
+        self.thermal_demand_warm_water : ComponentInput = self.add_input(self.ComponentName,
                                                                          self.ThermalDemandWarmWater,
-                                                                         lt.LoadTypes.Water,
-                                                                         lt.Units.Liter,
+                                                                         lt.LoadTypes.WarmWater,
+                                                                         lt.Units.Watt,
                                                                          True)
         self.control_signal_choose_storage: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                          self.ControlSignalChooseStorage,
@@ -186,7 +186,7 @@ class HeatStorage(Component):
         T_sp_var_ww=self.state.T_sp_ww #Start-Temp-Storage
         T_sp_var_hw=self.state.T_sp_hw #Start-Temp-Storage
 
-        last_var_ww =4182*stsv.get_input_value(self.demand_warm_water)*self.temperature_of_warm_water_extratcion
+        last_var_ww =stsv.get_input_value(self.thermal_demand_warm_water)
         last_var_hw =stsv.get_input_value(self.thermal_demand_heating_water)
 
         result_ww=[T_sp_var_ww,0]

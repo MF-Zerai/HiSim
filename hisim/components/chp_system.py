@@ -309,15 +309,16 @@ class CHP(Component):
         if self.operating_mode=="heat":
             control_signal = stsv.get_input_value(self.control_signal)
         elif self.operating_mode=="electricity":
-            control_signal = ((stsv.get_input_value(self.electricity_target)/self.P_el_max-self.eff_el_min))/(self.eff_el_max-self.eff_el_min)
-            if control_signal > 1:
+            control_signal = ((stsv.get_input_value(self.electricity_target) / self.P_el_max - self.eff_el_min)) / (
+                        self.eff_el_max - self.eff_el_min)
+            if control_signal > 1 or control_signal<0:
                 control_signal=1
         elif self.operating_mode=="both":
             if ((stsv.get_input_value(self.electricity_target)/self.P_el_max-self.eff_el_min))/(self.eff_el_max-self.eff_el_min) <= stsv.get_input_value(self.control_signal):
                 control_signal=stsv.get_input_value(self.control_signal)
             else:
                 control_signal=((stsv.get_input_value(self.electricity_target) / self.P_el_max - self.eff_el_min)) / (self.eff_el_max - self.eff_el_min)
-                if control_signal > 1:
+                if control_signal > 1 or control_signal<0:
                     control_signal=1
 
         if control_signal > 1:

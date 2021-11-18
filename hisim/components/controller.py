@@ -32,7 +32,7 @@ class Controller(cp.Component):
     ElectricityOutputPvs = "ElectricityOutputPvs"
     ElectricityDemandHeatPump= "ElectricityDemandHeatPump"
     ElectricityToOrFromBatteryReal = "ElectricityToOrFromBatteryReal"
-    ElectricityToElectrolyzerReal = "ElectricityToElectrolyzerReal"
+    ElectricityToElectrolyzerUnused = "ElectricityToElectrolyzerUnused"
     ElectricityFromCHPReal = "ElectricityFromCHPReal"
 
 
@@ -80,32 +80,32 @@ class Controller(cp.Component):
                                                                      self.StorageTemperatureWarmWater,
                                                                      lt.LoadTypes.Water,
                                                                      lt.Units.Celsius,
-                                                                     False)
+                                                                     True)
         self.temperature_storage_heating_water: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                      self.StorageTemperatureHeatingWater,
                                                                      lt.LoadTypes.Water,
                                                                      lt.Units.Celsius,
-                                                                     False)
+                                                                     True)
 
         self.electricity_consumption_building: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                                   self.ElectricityConsumptionBuilding,
                                                                                   lt.LoadTypes.Electricity,
                                                                                   lt.Units.Watt,
-                                                                                  False)
+                                                                                  True)
 
         self.electricity_output_pvs: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                         self.ElectricityOutputPvs,
                                                                         lt.LoadTypes.Electricity,
                                                                         lt.Units.Watt,
-                                                                        False)
+                                                                        True)
 
         self.electricity_to_or_from_battery_real: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                               self.ElectricityToOrFromBatteryReal,
                                                                               lt.LoadTypes.Electricity,
                                                                               lt.Units.Watt,
                                                                               False)
-        self.electricity_to_electrolyzer_real: cp.ComponentInput = self.add_input(self.ComponentName,
-                                                                              self.ElectricityToElectrolyzerReal,
+        self.electricity_to_electrolyzer_unused: cp.ComponentInput = self.add_input(self.ComponentName,
+                                                                              self.ElectricityToElectrolyzerUnused,
                                                                               lt.LoadTypes.Electricity,
                                                                               lt.Units.Watt,
                                                                               False)
@@ -238,14 +238,17 @@ class Controller(cp.Component):
         # more electricity than needed
         if delta_demand > 0:
             # Check if enough electricity is there to charge CHP (finds real solution after 2 Iteration-Steps)
-            if delta_demand - electricity_to_or_from_battery_target + electricity_not_used_battery > 0 and self.electricity_to_electrolyzer_real.SourceOutput is not None:
+            if self.electricity_to_electrolyzer_unused.SourceOutput is not None:
                 # possibility to  produce H2
                 electricity_to_electrolyzer_target = delta_demand - stsv.get_input_value(
                     self.electricity_to_or_from_battery_real)
+                if electricity_to_electrolyzer_target<0:
+                    electricity_to_electrolyzer_target=0
 
             # Negative sign, because Electricity will flow into grid->Production of Electricity
             electricity_to_or_from_grid = -delta_demand + stsv.get_input_value(
-                self.electricity_to_or_from_battery_real) + (electricity_to_electrolyzer_target-stsv.get_input_value(self.electricity_to_electrolyzer_real))
+                self.electricity_to_or_from_battery_real) + (electricity_to_electrolyzer_target-stsv.get_input_value(self.electricity_to_electrolyzer_unused))
+
 
         elif delta_demand < 0:
 
@@ -325,7 +328,7 @@ class Controller(cp.Component):
                control_signal_heat_pump=1
                if self.state.control_signal_chp < 1:
                    control_signal_chp = 1
-                   control_signal_gas_heater = 0.5
+                   control_signal_gas_heater = 1
                elif self.state.control_signal_chp == 1:
                    control_signal_gas_heater = 1
                temperature_storage_target_C = temperature_storage_target
@@ -392,29 +395,40 @@ class Controller(cp.Component):
 
         #Simulate WarmWater
         delta_temperature_ww = self.state.temperature_storage_target_ww_C - stsv.get_input_value(self.temperature_storage_warm_water)
-        self.state.temperature_storage_target_ww_C, self.state.timestep_of_hysteresis_ww, control_signal_choose_storage = self.simulate_storage(stsv=stsv,
-                                                  delta_temperature=delta_temperature_ww,
-                                                  timestep=timestep,
-                                                  temperature_storage=stsv.get_input_value(self.temperature_storage_warm_water),
-                                                  temperature_storage_target=self.temperature_storage_target_warm_water,
-                                                  temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_ww,
-                                                  temperature_storage_target_C=self.state.temperature_storage_target_ww_C,
-                                                  timestep_of_hysteresis=self.state.timestep_of_hysteresis_ww)
-        if control_signal_choose_storage == 2:
-            delta_temperature_hw = self.state.temperature_storage_target_hw_C - stsv.get_input_value(self.temperature_storage_heating_water)
-            self.state.temperature_storage_target_hw_C, self.state.timestep_of_hysteresis_hw, zero = self.simulate_storage(stsv=stsv,
-                                                      delta_temperature=delta_temperature_hw,
-                                                      timestep=timestep,
-                                                      temperature_storage=stsv.get_input_value(self.temperature_storage_heating_water),
-                                                      temperature_storage_target=self.temperature_storage_target_heating_water,
-                                                      temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_hw,
-                                                      temperature_storage_target_C=self.state.temperature_storage_target_hw_C,
-                                                      timestep_of_hysteresis=self.state.timestep_of_hysteresis_hw)
-            if delta_temperature_hw<0 and delta_temperature_ww<0:
-                if delta_temperature_hw<delta_temperature_ww:
-                    control_signal_choose_storage=1
+        delta_temperature_hw = self.state.temperature_storage_target_hw_C - stsv.get_input_value(self.temperature_storage_heating_water)
+        #just happend in parameterstudies
+        control_signal_choose_storage=2
+        if stsv.get_input_value(self.temperature_storage_warm_water)<0 or stsv.get_input_value(self.temperature_storage_heating_water)<0:
+            if stsv.get_input_value(self.temperature_storage_warm_water) < stsv.get_input_value(self.temperature_storage_heating_water):
+                control_signal_choose_storage = 1
+            else:
+                control_signal_choose_storage = 2
+        else:
+            if delta_temperature_hw < 0 and delta_temperature_ww < 0:
+                if delta_temperature_hw < delta_temperature_ww:
+                    control_signal_choose_storage = 1
                 else:
-                    control_signal_choose_storage=2
+                    control_signal_choose_storage = 2
+            if control_signal_choose_storage == 1:
+                self.state.temperature_storage_target_ww_C, self.state.timestep_of_hysteresis_ww, control_signal_choose_storage = self.simulate_storage(stsv=stsv,
+                                                          delta_temperature=delta_temperature_ww,
+                                                          timestep=timestep,
+                                                          temperature_storage=stsv.get_input_value(self.temperature_storage_warm_water),
+                                                          temperature_storage_target=self.temperature_storage_target_warm_water,
+                                                          temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_ww,
+                                                          temperature_storage_target_C=self.state.temperature_storage_target_ww_C,
+                                                          timestep_of_hysteresis=self.state.timestep_of_hysteresis_ww)
+            elif control_signal_choose_storage == 2:
+                delta_temperature_hw = self.state.temperature_storage_target_hw_C - stsv.get_input_value(self.temperature_storage_heating_water)
+                self.state.temperature_storage_target_hw_C, self.state.timestep_of_hysteresis_hw, zero = self.simulate_storage(stsv=stsv,
+                                                          delta_temperature=delta_temperature_hw,
+                                                          timestep=timestep,
+                                                          temperature_storage=stsv.get_input_value(self.temperature_storage_heating_water),
+                                                          temperature_storage_target=self.temperature_storage_target_heating_water,
+                                                          temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_hw,
+                                                          temperature_storage_target_C=self.state.temperature_storage_target_hw_C,
+                                                          timestep_of_hysteresis=self.state.timestep_of_hysteresis_hw)
+
         stsv.set_output_value(self.control_signal_choose_storage, control_signal_choose_storage)
 
 

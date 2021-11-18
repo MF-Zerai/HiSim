@@ -17,7 +17,7 @@ from components import advanced_battery
 from components import configuration
 from components import chp_system
 from components.hydrogen_generator import Electrolyzer ,HydrogenStorage
-from components.demand_el import DemandEl
+from components.demand_el import DemandEL
 from components.configuration import HydrogenStorageConfig, ElectrolyzerConfig
 
 

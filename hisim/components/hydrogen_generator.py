@@ -158,6 +158,7 @@ class Electrolyzer(Component):
     UnusedPower = "Unused Power"                        # W
     ElectrolyzerEfficiency = "Electrolyzer Efficiency"  # -
     PowerLevel = "Power Level"                          # %
+    ElectricityRealNeeded = "ElectricityRealNeeded"
 
     def __init__(self, component_name:str, power_electrolyzer:int,my_simulation_parameters):
         super().__init__(component_name)
@@ -171,6 +172,8 @@ class Electrolyzer(Component):
         self.oxygen_output: ComponentOutput = self.add_output(self.ComponentName, Electrolyzer.OxygenOutput, lt.LoadTypes.Oxygen, lt.Units.kg_per_sec)
         self.energy_losses: ComponentOutput = self.add_output(self.ComponentName, Electrolyzer.EnergyLosses, lt.LoadTypes.Electricity, lt.Units.Watt)
         self.unused_power: ComponentOutput = self.add_output(self.ComponentName, Electrolyzer.UnusedPower, lt.LoadTypes.Electricity, lt.Units.Watt)
+        self.electricity_real_needed: ComponentOutput = self.add_output(self.ComponentName, Electrolyzer.ElectricityRealNeeded, lt.LoadTypes.Electricity, lt.Units.Watt)
+
         self.electrolyzer_efficiency: ComponentOutput = self.add_output(self.ComponentName, Electrolyzer.ElectrolyzerEfficiency, lt.LoadTypes.Any, lt.Units.Any)
         self.power_level: ComponentOutput = self.add_output(self.ComponentName, Electrolyzer.PowerLevel, lt.LoadTypes.Any, lt.Units.Percent)
 
@@ -198,7 +201,6 @@ class Electrolyzer(Component):
         losses_this_timestep = 0
         unused_power = 0
         power_level = 0
-
         # the following is already regulated in the electricity distributor
         if electricity_input > self.power_electrolyzer:
             unused_power = electricity_input - self.power_electrolyzer
@@ -216,7 +218,7 @@ class Electrolyzer(Component):
             losses_this_timestep = ElectrolyzerConfig.waste_energy * self.power_electrolyzer/ ElectrolyzerConfig.max_power
             # unused_hydrogen = charging_amount - hydrogen_input  # add if needed?
             unused_power=unused_power+(electricity_input-electricity_needed)
-
+        electricity_real_needed=stsv.get_input_value(self.electricity_input)-unused_power
         # water is split into these products
         if oxygen_output==0:
             water_consumption=0
@@ -234,6 +236,9 @@ class Electrolyzer(Component):
         stsv.set_output_value(self.hydrogen_output, hydrogen_output)
         stsv.set_output_value(self.oxygen_output, oxygen_output)
         stsv.set_output_value(self.energy_losses, losses_this_timestep)
+        stsv.set_output_value(self.energy_losses, losses_this_timestep)
+
+        stsv.set_output_value(self.electricity_real_needed, electricity_real_needed)
         stsv.set_output_value(self.unused_power, unused_power)
         stsv.set_output_value(self.electrolyzer_efficiency, electrolyzer_efficiency)
         stsv.set_output_value(self.power_level, power_level)
