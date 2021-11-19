@@ -68,14 +68,14 @@ class HeatStorage(Component):
                                                                          self.ThermalDemandHeatingWater,
                                                                          lt.LoadTypes.WarmWater,
                                                                          lt.Units.Watt,
-                                                                         True)
+                                                                         False)
 
 
         self.thermal_demand_warm_water : ComponentInput = self.add_input(self.ComponentName,
                                                                          self.ThermalDemandWarmWater,
                                                                          lt.LoadTypes.WarmWater,
                                                                          lt.Units.Watt,
-                                                                         True)
+                                                                         False)
         self.control_signal_choose_storage: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                          self.ControlSignalChooseStorage,
                                                                          lt.LoadTypes.Any,

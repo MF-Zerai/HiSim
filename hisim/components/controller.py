@@ -80,12 +80,12 @@ class Controller(cp.Component):
                                                                      self.StorageTemperatureWarmWater,
                                                                      lt.LoadTypes.Water,
                                                                      lt.Units.Celsius,
-                                                                     True)
+                                                                     False)
         self.temperature_storage_heating_water: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                      self.StorageTemperatureHeatingWater,
                                                                      lt.LoadTypes.Water,
                                                                      lt.Units.Celsius,
-                                                                     True)
+                                                                     False)
 
         self.electricity_consumption_building: cp.ComponentInput = self.add_input(self.ComponentName,
                                                                                   self.ElectricityConsumptionBuilding,
