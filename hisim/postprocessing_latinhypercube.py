@@ -328,6 +328,15 @@ class PostProcessor:
         #elif self.flags["plot_strategy_peak_shave_into_grid"]:
             #pass
         return target_matrix_new , key_performance_indicators_new, breaker
+
+
+    def calculate_correlations(self,target_matrix,key_performance_indicators):
+        for house in self.flags_houses:
+            target_matrix_new_after_house, key_performance_indicators_new_after_house, breaker = self.sort_out_because_of_house_choosing(
+                target_matrix=target_matrix, key_performance_indicators=key_performance_indicators, x=house)
+            if breaker:
+                continue
+            print(2)
     def plot_heat_map(self,target_matrix,key_performance_indicators):
 
         for kpi in key_performance_indicators[0,:]:
@@ -419,7 +428,9 @@ class PostProcessor:
                                              "Autarky"])
         new_list = self.get_all_relevant_folders()
         target_matrix=self.get_json_data(new_list,target_matrix)
+
         key_performance_indicators=self.get_pickle_informations(new_list,key_performance_indicators,target_matrix)
+        self.calculate_correlations(key_performance_indicators,target_matrix)
         self.plot_heat_map(target_matrix,key_performance_indicators)
 
 
@@ -427,8 +438,8 @@ class PostProcessor:
 my_Post_Processor=PostProcessor(folder_name="basic_household_implicit_hyper_cube_",
                                 json_file_name="cfg",
                                 pickle_file_name="data",
-                                start_date="20211118_122200",
-                                end_date="20211118_234900",
+                                start_date="20211116_045200",
+                                end_date="20211116_050000",
                                 heat_map_precision_factor=20)
 my_Post_Processor.run()
 #f=open("HiSim/hisim/results/basic_household_implicit_hyper_cube_20211113_130857/cfg.json",)
