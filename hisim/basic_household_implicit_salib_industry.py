@@ -76,11 +76,11 @@ if __name__ == '__main__':
             x=z-1
             z = z + 1
             #LHS Variables which forms one unique Simulation
-            lhs_factor_profile= int(param_values[0,x]//(1/286))+1 # in range of [0 , 1]
-            lhs_factor_battery= param_values[1,x]# in range of [0 , 1]
-            lhs_factor_pv = param_values[2,x]# in range of [0 , 1]
-            lhs_factor_control_strategy=int(param_values[3,x]//(1/3)) #either[0,1,]
-            lhs_factor_percentage_to_peak_shave=int(param_values[4,x]//(1/3))
+            lhs_factor_profile= int(param_values[x,0]//(1/286))+1 # in range of [0 , 1]
+            lhs_factor_battery= param_values[x,1]# in range of [0 , 1]
+            lhs_factor_pv = param_values[x,2]# in range of [0 , 1]
+            lhs_factor_control_strategy=int(param_values[x,3]//(1/3)) #either[0,1,]
+            lhs_factor_percentage_to_peak_shave=int(param_values[x,4]//(1/3))
             # lhs_factor_weather_region=int(lhs_field[5,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
             ###see which company
             counter = 0
