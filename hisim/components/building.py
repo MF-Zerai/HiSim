@@ -260,8 +260,7 @@ class Building(cp.Component):
         #                                                           lt.Units.Celsius)
 
     def i_simulate(self, timestep: int, stsv: cp.SingleTimeStepValues, seconds_per_timestep: int, force_convergence: bool):
-        #if timestep >=10392 and force_convergence:
-        #    print("Stop herj!")
+
         #if force_convergence:
         #    return
 

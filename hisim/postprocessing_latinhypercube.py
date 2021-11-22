@@ -22,7 +22,7 @@ class PostProcessor:
                  heat_map_precision_factor: int,
                  plot_heat_map=True,
                  plot_all_houses=True,
-                 plot_efh=False,
+                 plot_sfh=False,
                  plot_mfh=False,
                  plot_strategy_all=True,
                  plot_strategy_own_consumption=True,
@@ -31,7 +31,10 @@ class PostProcessor:
                  plot_self_consumption=True,
                  plot_autarky=True,
                  plot_battery_and_pv=True,
-                 plot_h2_storage=True):
+                 plot_h2_storage_relative_demand=True,
+                 plot_h2_storage_relative_battery=True,
+                 plot_peak_shaving_demand_accurancy=True,
+                 plot_peak_shaving_generation_accurancy=True):
         self.folder_name=folder_name
         self.start_date = start_date
         self.end_date = end_date
@@ -43,14 +46,17 @@ class PostProcessor:
                                             "plot_autarky": plot_autarky}
         self.flags_plots ={"plot_heat_map": plot_heat_map}
         self.flags_houses = {"plot_all_houses": plot_all_houses,
-                              "plot_sfh": plot_efh,
+                              "plot_sfh": plot_sfh,
                               "plot_mfh": plot_mfh}
         self.flags_strategy= {"plot_strategy_all": plot_strategy_all,
                               "plot_strategy_own_consumption": plot_strategy_own_consumption,
                               "plot_strategy_seasonal_storage": plot_strategy_seasonal_storage,
                               "plot_strategy_peak_shave_into_grid": plot_strategy_peak_shave_into_grid}
         self.flags_components={"plot_battery_and_pv": plot_battery_and_pv,
-                              "plot_h2_storage": plot_h2_storage}
+                              "plot_h2_storage_relative_demand": plot_h2_storage_relative_demand,
+                               "plot_h2_storage_relative_battery": plot_h2_storage_relative_battery,
+                               "plot_peak_shaving_demand_accurancy": plot_peak_shaving_demand_accurancy,
+                               "plot_peak_shaving_generation_accurancy": plot_peak_shaving_generation_accurancy}
     def get_json_data(self,new_list,target_matrix):
 
         for a in  range(len(new_list)):
@@ -84,6 +90,7 @@ class PostProcessor:
             newrow.append(json_data.get("Components", {}).get("HydrogenStorage", {}).get("max_capacity", None ))
             newrow.append(json_data.get("Components", {}).get("Controller", {}).get("strategy", None ))
             newrow.append(json_data.get("Components", {}).get("Controller", {}).get("percentage_to_shave", None ))
+            newrow.append(json_data.get("Components", {}).get("Controller", {}).get("limit_to_shave", None))
             target_matrix = np.vstack([target_matrix, newrow])
         return target_matrix
 
@@ -120,7 +127,7 @@ class PostProcessor:
                     sum_Produced_Elect_pv= sum((A["PVSystem - ElectricityOutput [Electricity - W]"]))
                     sum_Demand_Elect_house = sum((A["CSVLoaderEL - electricity demand, house [W] [Electricity - W]"]))
 
-
+                    '''
                     sum_Electricity_From_Grid=sum(x for x in A["Controller - ElectricityToOrFromGrid [Electricity - W]"] if x > 0)
                     #weird thing, which only happens if Electrolyzer is in system. Than out of some reason electricity goes into grid, when it shouldnt.
                     #but rest of the values or right
@@ -142,6 +149,9 @@ class PostProcessor:
                         else:
                             print("other component is acting werid")
 
+                    '''
+                    sum_Electricity_From_Grid=sum(x for x in A["Controller - ElectricityToOrFromGrid [Electricity - W]"] if x > 0)
+                    sum_Electricity_Into_Grid = -sum(x for x in A["Controller - ElectricityToOrFromGrid [Electricity - W]"] if x < 0)
 
                     if "AdvancedBattery - AC Battery Power [Electricity - W]" in A:
                         sum_Demand_Battery= sum(x for x in A["AdvancedBattery - AC Battery Power [Electricity - W]"] if x > 0)
@@ -168,10 +178,25 @@ class PostProcessor:
                     else:
                         sum_Produced_Elect_chp = 0
 
+                    if "CHP - ElectricityOutput [Electricity - W]" in A:
+                        sum_Produced_Elect_chp= sum((A["CHP - ElectricityOutput [Electricity - W]"]))
+                    else:
+                        sum_Produced_Elect_chp = 0
+
+                    if "CHP - ElectricityOutput [Electricity - W]" in A:
+                        sum_Produced_Elect_chp= sum((A["CHP - ElectricityOutput [Electricity - W]"]))
+                    else:
+                        sum_Produced_Elect_chp = 0
+
                     sum_Demand=sum_Demand_Elect_heat_pump+sum_Demand_Elect_house+sum_Demand_Elect_electrolyzer+sum_Demand_Battery
+
                     sum_Produced=sum_Produced_Elect_pv+sum_Produced_Elect_Battery+sum_Produced_Elect_chp
+
                     own_consumption=(sum_Produced_Elect_pv-sum_Electricity_Into_Grid)/(sum_Produced_Elect_pv)
-                    autarky=(sum_Demand_Elect_house - sum_Electricity_From_Grid) / (sum_Demand_Elect_house)
+                    autarky=(sum_Demand - sum_Electricity_From_Grid) / (sum_Demand)
+
+                    own_consumption=(sum_Produced-sum_Electricity_Into_Grid)/sum_Produced
+
                     if own_consumption > 1:
                         print("owncumption is bigger than one :" +str(own_consumption))
                         own_consumption=1
@@ -211,15 +236,28 @@ class PostProcessor:
             if component in "plot_battery_and_pv":
                 x_axis.append((target_matrix[x, 5] / 1000) / target_matrix[x, 4])  # in kW/kW
                 y_axis.append(target_matrix[x, 6] / (target_matrix[x, 4]))  # in kWh/kw
-            elif component in "plot_h2_storage":
+            elif component in "plot_h2_storage_relative_demand":
                 if target_matrix[x, 13] == None or target_matrix[x, 13] == 0:
                     breaker = True
                     return 1, 0 ,0, breaker
                 else:
                     x_axis.append((target_matrix[x, 5]/1000) / target_matrix[x, 6])  # in kW/kW
                     y_axis.append(target_matrix[x, 13]/(target_matrix[x, 4])) # in kWh/kw
+            elif component in "plot_h2_storage_relative_battery":
+                if target_matrix[x, 13] == None or target_matrix[x, 13] == 0:
+                    breaker = True
+                    return 1, 0 ,0, breaker
+                else:
+                    x_axis.append((target_matrix[x, 5]/1000) / target_matrix[x, 4])  # in kW/kW
+                    y_axis.append(target_matrix[x, 13]/(target_matrix[x, 6])) # in kWh/kw
+            elif component in "plot_peak_shaving_generation_accurancy":
+                print("stop")
+
+            elif component in "plot_peak_shaving_demand_accurancy":
+                print("stop")
             else:
                 print("no component to print choosed")
+                return 1, 0, 0, breaker
         x_axis = np.around(np.array(x_axis), decimals=2)
         y_axis = np.around(np.array(y_axis), decimals=2)
         if kpi == "OwnConsumption":
@@ -237,14 +275,13 @@ class PostProcessor:
         while x < (len(x_axis)):
             x_index = round((x_axis[x] - plot_boundaries[(0)][0]) / precision_x_axis)
             y_index = round((y_axis[x] - plot_boundaries[(1)][0]) / precision_y_axis)
-            if float(key_to_look_at[x])>0.9:
-                print(key_to_look_at[x])
+
 
 
             if grid[y_index, x_index] == 0:
                 grid[y_index, x_index] = float(key_to_look_at[x])
             else:
-                grid[y_index, x_index] = (grid[y_index, x_index]) #+ float(key_to_look_at[x])) / 2
+                grid[y_index, x_index] = ((grid[y_index, x_index]) + float(key_to_look_at[x]))/ 2
             x = x + 1
         Z =grid
         x= np.arange (plot_boundaries[(0)][0], plot_boundaries[(0)][1], precision_x_axis)
@@ -336,20 +373,25 @@ class PostProcessor:
                 target_matrix=target_matrix, key_performance_indicators=key_performance_indicators, x=house)
             if breaker:
                 continue
-            print(2)
+
     def plot_heat_map(self,target_matrix,key_performance_indicators):
 
         for kpi in key_performance_indicators[0,:]:
             for house in self.flags_houses:
+                if self.flags_houses[house]==False:
+                    continue
                 target_matrix_new_after_house, key_performance_indicators_new_after_house, breaker=self.sort_out_because_of_house_choosing(target_matrix=target_matrix,key_performance_indicators=key_performance_indicators, x=house)
                 if breaker:
                     continue
                 for strategy in self.flags_strategy:
+                    if self.flags_strategy[strategy] == False:
+                        continue
                     target_matrix_after_stragey, key_performance_indicators_new_after_strategy, breaker= self.sort_out_because_of_strategy_choosing(target_matrix=target_matrix_new_after_house, key_performance_indicators=key_performance_indicators_new_after_house,y=strategy )
                     if breaker:
                         continue
                     for component in self.flags_components:
-
+                        if self.flags_components[component] == False:
+                            continue
                         Z, x ,y, breaker=self.transform_data_for_plot(target_matrix=target_matrix_after_stragey, key_performance_indicators=key_performance_indicators_new_after_strategy,kpi=kpi,component=component)
                         if breaker == True and Z==0:
                             print(""+house+" with "+strategy+" has no simulation results and can't be printed")
@@ -361,15 +403,21 @@ class PostProcessor:
                         cbar = fig.colorbar(cax)
                         cbar.ax.set_ylabel(kpi)
 
+                        ax.set_xticks(range(len(x)))
+                        ax.set_yticks(range(len(y)))
 
-                        ax.set_xticklabels((list(np.round(x,1))))
-                        ax.set_yticklabels((list(np.round(y,1))))
+                        ax.set_xticklabels(list(np.round(x,1)))
+                        ax.set_yticklabels(list(np.round(y,1)))
                         ax.set_title("" + house + " with " + strategy + "")
                         #ax.set_xticklabels(xticklabels)
 
-                        if component == "plot_h2_storage":
+                        if component == "plot_h2_storage_relative_demand":
                             plt.xlabel('PV-Power kWp/Battery-Capacity kWh')
                             plt.ylabel('H2 Storage in litres / MWh')
+                            plt.show()
+                        elif component == "plot_h2_storage_relative_battery":
+                            plt.xlabel('PV-Power kWp/Demand MWh')
+                            plt.ylabel('H2 Storage in litres / BatteryCapacity kWh')
                             plt.show()
                         else:
                             plt.xlabel('PV-Power kWp/MWh')
@@ -422,7 +470,8 @@ class PostProcessor:
                                  "WarmWaterStorageVolume",
                                  "HydrogenStorageVolume",
                                  "ControlStrategy",
-                                 "PercentageToShave"])
+                                 "PercentageToShave",
+                                 "LimitToShave"])
 
         key_performance_indicators=np.array(["OwnConsumption",
                                              "Autarky"])
@@ -430,7 +479,7 @@ class PostProcessor:
         target_matrix=self.get_json_data(new_list,target_matrix)
 
         key_performance_indicators=self.get_pickle_informations(new_list,key_performance_indicators,target_matrix)
-        self.calculate_correlations(key_performance_indicators,target_matrix)
+        #self.calculate_correlations(key_performance_indicators,target_matrix)
         self.plot_heat_map(target_matrix,key_performance_indicators)
 
 
@@ -438,9 +487,9 @@ class PostProcessor:
 my_Post_Processor=PostProcessor(folder_name="basic_household_implicit_hyper_cube_",
                                 json_file_name="cfg",
                                 pickle_file_name="data",
-                                start_date="20211116_045200",
-                                end_date="20211116_050000",
-                                heat_map_precision_factor=20)
+                                start_date="20211121_194520",
+                                end_date="20211122_050000",
+                                heat_map_precision_factor=30)
 my_Post_Processor.run()
 #f=open("HiSim/hisim/results/basic_household_implicit_hyper_cube_20211113_130857/cfg.json",)
 #data = json.load(f)

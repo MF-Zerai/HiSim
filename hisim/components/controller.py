@@ -271,10 +271,12 @@ class Controller(cp.Component):
         if delta_demand > 0:
             electricity_to_or_from_battery_target = delta_demand
         elif -delta_demand >  limit_to_shave:
+            check_peak_shaving=1
             electricity_to_or_from_battery_target= delta_demand+limit_to_shave
             if -delta_demand + limit_to_shave + stsv.get_input_value(
                 self.electricity_to_or_from_battery_real) > 0:
-                check_peak_shaving = 1
+                check_peak_shaving = -delta_demand + limit_to_shave + stsv.get_input_value(
+                self.electricity_to_or_from_battery_real)
         electricity_to_or_from_grid = -delta_demand + stsv.get_input_value(
             self.electricity_to_or_from_battery_real)
 
@@ -292,9 +294,10 @@ class Controller(cp.Component):
 
             if delta_demand - limit_to_shave - stsv.get_input_value(
                 self.electricity_to_or_from_battery_real) > 0:
-                check_peak_shaving = 1 # Peak Shaving didnt work
+                check_peak_shaving = delta_demand - limit_to_shave - stsv.get_input_value(
+                self.electricity_to_or_from_battery_real) # Peak Shaving didnt work
             else:
-                check_peak_shaving = 0
+                check_peak_shaving = 1
         elif delta_demand<0:
             electricity_to_or_from_battery_target=delta_demand
 

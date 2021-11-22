@@ -88,11 +88,8 @@ def basic_household(my_sim):
                         minimum=1000,
                         maximum=2000)
     my_sim.add_component(my_rn1)
-    '''                                    
-    # Build occupancy
-    my_occupancy = occupancy.Occupancy(profile=occupancy_profile)
-    my_sim.add_component(my_occupancy)
-    '''
+
+
     # Build Weather
     my_weather = weather.Weather(location=location)
     my_sim.add_component(my_weather)

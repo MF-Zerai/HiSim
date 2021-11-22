@@ -15,9 +15,9 @@ from components import storage
 from components import pvs
 from components import advanced_battery
 from components import configuration
-from components import chp_system
+from components.chp_system import CHP
 from components.hydrogen_generator import Electrolyzer ,HydrogenStorage
-from components.demand_el import DemandEL
+from components.csvloader import CSVLoaderEL
 from components.configuration import HydrogenStorageConfig, ElectrolyzerConfig
 
 
@@ -102,12 +102,13 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_sim.set_parameters(my_sim_params)
 
     #ElectricityDemand
-    csv_load_power_demand = DemandEl(component_name="csv_load_power_demand",
-                                      csv_filename="loadprofiles/vdi-4655_mfh-existing_try-1_15min.csv",
+    csv_load_power_demand = CSVLoaderEL(component_name="csv_load_power",
+                                      csv_filename="loadprofiles/vdi-4655/vdi-4655_mfh-existing_try-1_15min.csv",
                                       column=1,
                                       loadtype=loadtypes.LoadTypes.Electricity,
                                       unit=loadtypes.Units.Watt,
-                                      column_name='"electricity demand, house [W]"',
+                                      column_name="power_demand",
+                                      simulation_parameters=my_sim_params,
                                       multiplier=6)
     my_sim.add_component(csv_load_power_demand)
 
@@ -119,9 +120,29 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_weather = weather.Weather(location=location)
     my_sim.add_component(my_weather)
 
-    # Build CHP
 
 
+    #Build Electrolyzer
+
+    my_electrolyzer = Electrolyzer(component_name="Electrolyzer",
+                                    my_simulation_parameters=my_sim_params,
+                                    power_electrolyzer=1000)
+    my_hydrogen_storage = HydrogenStorage(component_name="HydrogenStorage",
+                                          my_simulation_parameters=my_sim_params,
+                                          max_capacity=1000)
+    my_chp = CHP(name="CHP",
+                 p_el_max=1000000000000)
+    # Build building
+    '''
+    my_building = building.Building(building_code=building_code,
+                                        bClass=building_class,
+                                        initial_temperature=initial_temperature,
+                                        sim_params=my_sim_params,
+                                        seconds_per_timestep=seconds_per_timestep)
+     '''
+                                        
+    #Build Battery
+    my_battery = advanced_battery.AdvancedBattery(my_simulation_parameters=my_sim_params,capacity=capacity)
 
 
 
@@ -130,10 +151,142 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
 
 
 
+    '''
+    # Build heat pump 
+    my_heat_pump = heat_pump_hplib.HeatPumpHplib(model=hp_manufacturer, 
+                                                    group_id=hp_type,
+                                                    t_in=hp_t_input,
+                                                    t_out=hp_t_output,
+                                                    p_th_set=hp_thermal_power)
+    my_heat_storage = storage.HeatStorage(V_SP = wws_volume,
+                                          temperature_of_warm_water_extratcion = wws_temp_outlet,
+                                          ambient_temperature=wws_temp_ambient)
+                                          
+    my_heat_pump.connect_input(my_heat_pump.OnOffSwitch,
+                               my_controller.ComponentName,
+                               my_controller.ControlSignalHeatPump)
+    my_heat_pump.connect_input(my_heat_pump.TemperatureInputPrimary,
+                               my_weather.ComponentName,
+                               my_weather.TemperatureOutside)
+    my_heat_pump.connect_input(my_heat_pump.TemperatureInputSecondary,
+                               my_heat_storage.ComponentName,eir
+                               my_heat_storage.WaterOutputTemperature)
+    my_heat_pump.connect_input(my_heat_pump.TemperatureInputPrimary,
+                               my_weather.ComponentName,
+                               my_weather.TemperatureOutside)
+    my_heat_pump.connect_input(my_heat_pump.TemperatureAmbient,
+                               my_weather.ComponentName,
+                               my_weather.TemperatureOutside)
+    my_sim.add_component(my_heat_pump)
+
+
+    # Build heat storage
+
+    my_heat_storage.connect_input(my_heat_storage.InputMass1,
+                               my_heat_pump.ComponentName,
+                               my_heat_pump.MassFlowOutput)
+    my_heat_storage.connect_input(my_heat_storage.InputTemp1,
+                               my_heat_pump.ComponentName,
+                               my_heat_pump.TemperatureOutput)
+    my_heat_storage.connect_input(my_heat_storage.InputTemp1,
+                               my_heat_pump.ComponentName,
+                               my_heat_pump.TemperatureOutput)
+
+    my_sim.add_component(my_heat_storage)
+    '''
+    my_photovoltaic_system = pvs.PVSystem(time=time,
+                                          location=location,
+                                          power=power,
+                                          load_module_data=load_module_data,
+                                          module_name=module_name,
+                                          integrateInverter=integrateInverter,
+                                          inverter_name=inverter_name,
+                                          my_simulation_parameters=my_sim_params)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.TemperatureOutside,
+                                         my_weather.ComponentName,
+                                         my_weather.TemperatureOutside)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.DirectNormalIrradiance,
+                                         my_weather.ComponentName,
+                                         my_weather.DirectNormalIrradiance)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.DirectNormalIrradianceExtra,
+                                         my_weather.ComponentName,
+                                         my_weather.DirectNormalIrradianceExtra)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.DiffuseHorizontalIrradiance,
+                                         my_weather.ComponentName,
+                                         my_weather.DiffuseHorizontalIrradiance)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.GlobalHorizontalIrradiance,
+                                         my_weather.ComponentName,
+                                         my_weather.GlobalHorizontalIrradiance)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.Azimuth,
+                                         my_weather.ComponentName,
+                                         my_weather.Azimuth)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.ApparentZenith,
+                                         my_weather.ComponentName,
+                                         my_weather.ApparentZenith)
+    my_photovoltaic_system.connect_input(my_photovoltaic_system.WindSpeed,
+                                         my_weather.ComponentName,
+                                         my_weather.WindSpeed)
+    my_sim.add_component(my_photovoltaic_system)
+
+
+
+    my_battery.connect_input(my_battery.LoadingPowerInput,
+                               my_controller.ComponentName,
+                               my_controller.ElectricityToOrFromBatteryTarget)
+
+    my_controller.connect_input(my_controller.ElectricityToOrFromBatteryReal,
+                               my_battery.ComponentName,
+                               my_battery.ACBatteryPower)
+
+
     my_controller.connect_input(my_controller.ElectricityConsumptionBuilding,
                                csv_load_power_demand.ComponentName,
                                csv_load_power_demand.Output1)
 
+    my_controller.connect_input(my_controller.ElectricityOutputPvs,
+                               my_photovoltaic_system.ComponentName,
+                               my_photovoltaic_system.ElectricityOutput)
+
+
+
+    my_electrolyzer.connect_input(my_electrolyzer.ElectricityInput,
+                               my_controller.ComponentName,
+                               my_controller.ElectricityToElectrolyzerTarget)
+
+
+    my_electrolyzer.connect_input(my_electrolyzer.HydrogenNotStored,
+                               my_hydrogen_storage.ComponentName,
+                               my_hydrogen_storage.HydrogenNotStored)
+
+    my_controller.connect_input(my_controller.ElectricityToElectrolyzerUnused,
+                               my_electrolyzer.ComponentName,
+                               my_electrolyzer.UnusedPower)
+    my_controller.connect_input(my_controller.ElectricityFromCHPReal,
+                               my_chp.ComponentName,
+                               my_chp.ElectricityOutput)
+
+
+    my_hydrogen_storage.connect_input(my_hydrogen_storage.ChargingHydrogenAmount,
+                                   my_electrolyzer.ComponentName,
+                                   my_electrolyzer.HydrogenOutput)
+    my_hydrogen_storage.connect_input(my_hydrogen_storage.DischargingHydrogenAmountTarget,
+                                   my_chp.ComponentName,
+                                   my_chp.GasDemandTarget)
+    '''
+    my_hydrogen_storage.connect_input(my_hydrogen_storage.DischargingHydrogenAmount,
+                                   my_chp.ComponentName,
+                                   my_chp.GasDemand)
+    '''
+    my_chp.connect_input(my_chp.HydrogenNotReleased,
+                           my_hydrogen_storage.ComponentName,
+                           my_hydrogen_storage.HydrogenNotReleased)
+
+    my_chp.connect_input(my_chp.ControlSignal,
+                           my_controller.ComponentName,
+                           my_controller.ControlSignalChp)                               
+    my_chp.connect_input(my_chp.ElectricityFromCHPTarget,
+                           my_controller.ComponentName,
+                           my_controller.ElectricityFromCHPTarget)
 
 
 
@@ -144,6 +297,9 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_sim.add_component(my_controller)
 
 
+    my_sim.add_component(my_chp)
+    my_sim.add_component(my_electrolyzer)
+    my_sim.add_component(my_hydrogen_storage)
 
 
 

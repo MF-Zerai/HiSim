@@ -8,19 +8,20 @@ from math import floor
 import pandas as pd
 import os
 import globals
-
+import math
 class CHPConfigSimple:
     is_modulating = True
     P_el_min = 2_000        # [W]
     P_th_min = 3_000        # [W]
     eff_el_min = 0.2        # [-]
     eff_th_min = 0.5        # [-]
-
+    mass_flow_max=0.011     #kg/s
     P_el_max = 3_000        # [W]
     P_th_max = 4_000        # [W]
     eff_el_max = 0.4        # [-]
     eff_th_max = 0.55       # [-]
-
+    temperature_max=80
+    delta_T=10
 class CHPConfig:
 
     # system_name = "BlueGEN15"
@@ -101,18 +102,28 @@ class CHP(Component):
         self.previous_state = copy.deepcopy(self.state)
 
         #the 3600 comes from Normalised chp from p_el_max=3600. Look up chp_system_lib for more information
-        self.P_th_min = (p_el_max/3600)*850
-        self.P_el_min = (p_el_max/3600)*500
         self.P_el_max = p_el_max
-        self.P_th_max = (p_el_max/3600)*1980
+        usually_P_el_max= CHPConfigSimple.P_el_max
+        self.P_th_max = CHPConfigSimple.P_th_max*(self.P_el_max/usually_P_el_max)
+        self.P_th_min = CHPConfigSimple.P_th_min
+        self.P_el_min = CHPConfigSimple.P_el_min
 
-        self.eff_th_min = CHPConfig.eff_th_min
-        self.eff_th_max = CHPConfig.eff_th_max
-        self.eff_el_min = CHPConfig.eff_el_min
-        self.eff_el_max = CHPConfig.eff_el_max
-        self.temperature_max = CHPConfig.temperature_max
-        self.mass_flow_max = CHPConfig.mass_flow_max
-        self.delta_T=CHPConfig.delta_T
+        if self.P_el_max < self.P_el_min or self.P_th_max < self.P_th_min:
+            self.P_el_max=self.P_el_min+100
+            self.P_th_max=self.P_th_max+100
+
+        self.mass_flow_max = CHPConfigSimple.mass_flow_max * (self.P_el_max/usually_P_el_max)
+        if self.mass_flow_max < CHPConfigSimple.mass_flow_max:
+            self.mass_flow_max=CHPConfigSimple.mass_flow_max
+        self.eff_th_min = CHPConfigSimple.eff_th_min
+        self.eff_th_max = CHPConfigSimple.eff_th_max
+        self.eff_el_min = CHPConfigSimple.eff_el_min
+        self.eff_el_max = CHPConfigSimple.eff_el_max
+        self.temperature_max = CHPConfigSimple.temperature_max
+
+        self.delta_T=CHPConfigSimple.delta_T
+
+
 
         #Inputs
         self.control_signal: ComponentInput = self.add_input(self.ComponentName, CHP.ControlSignal, lt.LoadTypes.Any, lt.Units.Percent, False)
@@ -305,19 +316,46 @@ class CHP(Component):
 
         return el_power, th_power, eff_el_real, eff_th_real
 
+    def calculate_control_signal(self,stsv):
+        if (stsv.get_input_value(self.electricity_target)) < self.P_el_min * self.eff_el_min:
+            control_signal=0.4
+            return control_signal
+        elif (stsv.get_input_value(self.electricity_target))> self.P_el_max * self.eff_el_max:
+            control_signal = 1
+            return control_signal
+        else:
+            x1 = (-self.P_el_max - math.sqrt((self.P_el_max * self.eff_el_min) ** 2 + 4 * (
+                        stsv.get_input_value(self.electricity_target) * self.P_el_max * (
+                            self.eff_el_max - self.eff_el_min)))) / (
+                             2 * self.P_el_max * (self.eff_el_max - self.eff_el_min))
+            x2 = (-self.P_el_max + math.sqrt((self.P_el_max * self.eff_el_min) ** 2 + 4 * (
+                        stsv.get_input_value(self.electricity_target) * self.P_el_max * (
+                            self.eff_el_max - self.eff_el_min)))) / (
+                             2 * self.P_el_max * (self.eff_el_max - self.eff_el_min))
+            if 0<x1 and x1<1:
+                if 0<x2 and x2<1:
+                    if x1<x2:
+                        return x2
+                    else:
+                        return x1
+                else:
+                    return x1
+            else:
+                return x2
+
     def i_simulate(self, timestep: int, stsv: SingleTimeStepValues, seconds_per_timestep: int, force_convergence: bool):
         if self.operating_mode=="heat":
             control_signal = stsv.get_input_value(self.control_signal)
         elif self.operating_mode=="electricity":
-            control_signal = ((stsv.get_input_value(self.electricity_target) / self.P_el_max - self.eff_el_min)) / (
-                        self.eff_el_max - self.eff_el_min)
+            control_signal = self.calculate_control_signal(stsv)
             if control_signal > 1 or control_signal<0:
                 control_signal=1
         elif self.operating_mode=="both":
-            if ((stsv.get_input_value(self.electricity_target)/self.P_el_max-self.eff_el_min))/(self.eff_el_max-self.eff_el_min) <= stsv.get_input_value(self.control_signal):
-                control_signal=stsv.get_input_value(self.control_signal)
+            control_signal=self.calculate_control_signal(stsv)
+            if control_signal <= stsv.get_input_value(self.control_signal):
+                    control_signal=stsv.get_input_value(self.control_signal)
             else:
-                control_signal=((stsv.get_input_value(self.electricity_target) / self.P_el_max - self.eff_el_min)) / (self.eff_el_max - self.eff_el_min)
+                control_signal=control_signal
                 if control_signal > 1 or control_signal<0:
                     control_signal=1
 

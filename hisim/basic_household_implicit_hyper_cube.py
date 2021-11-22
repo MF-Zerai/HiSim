@@ -44,29 +44,26 @@ def basic_household_implicit_hyper_cube(my_sim: sim.Simulator):
 
 if __name__ == '__main__':
 
-    lhs_field=lhsmdu.sample(10, 2)
+    lhs_field=lhsmdu.sample(10, 10)
     z=1
     try:
         while z <= lhs_field.shape[1]:
             x=z-1
             z = z + 1
             #LHS Variables which forms one unique Simulation
-            lhs_factor_demand= lhs_field[1,x] # in range of [0 , 1]
+            lhs_factor_demand= lhs_field[0,x] # in range of [0 , 1]
             lhs_factor_battery= lhs_field[1,x]# in range of [0 , 1]
             lhs_factor_pv = lhs_field[2,x]# in range of [0 , 1]
             lhs_factor_storage_h2= lhs_field[3,x]# in range of [0 , 1]
 
-            lhs_factor_setup_var=int(lhs_field[4,x]//(1/2)) #either exact [0,1,2] 0=HP, 1=CHP+GH, 2=CHP+GH+ELCT+H2ST
+            lhs_factor_setup_var=int(lhs_field[4,x]//(1/3)) #either exact [0,1,2] 0=HP, 1=CHP+GH, 2=CHP+GH+ELCT+H2ST
 
             lhs_factor_heat_demand_relative_to_moderness=int(lhs_field[5,x]//(1/3)) #either exact [0,1,2]
             lhs_factor_which_house=int(lhs_field[6,x]//(1/2)) #either exact [0,1]
             lhs_factor_weather_region=int(lhs_field[7,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
-            lhs_factor_control_strategy=int(lhs_field[8,x]//(1/3)) #either[0,1,2]
-            lhs_factor_percentage_to_peak_shave=int(lhs_field[9,x]//(1/3))
-            lhs_factor_setup_var=0
-            lhs_factor_which_house=0
-            lhs_factor_weather_region=1
-            lhs_factor_heat_demand_relative_to_moderness=0
+            lhs_factor_control_strategy=int(lhs_field[8,x]//(1/2)) #either[0,1,2]
+            lhs_factor_percentage_to_peak_shave=lhs_field[9,x]
+
             #Choose house and calculate specific HeatWater/WarmWater/Electricity demand
             factor_which_house=["sfh" , "mfh"]
             if factor_which_house[lhs_factor_which_house] == "sfh":
@@ -84,19 +81,19 @@ if __name__ == '__main__':
 
 
             #pv and battery is in every set_up
-            battery_capacity= (0.01 + (6-0.01)*lhs_factor_battery)*factor_electricity/1000 #in kWh
+            battery_capacity= (0.01 + (8-0.01)*lhs_factor_battery)*factor_electricity/1000 #in kWh
             if int(battery_capacity)==0:
                 battery_capacity=1
 
-            power_pv=(0.01+(13-0.01)*lhs_factor_pv)*factor_electricity/1000#in kW
-
+            power_pv=(0.01+(8-0.01)*lhs_factor_pv)*factor_electricity/1000#in kW
+            lhs_factor_percentage_to_peak_shave
             #Percentage_to-Peak_shave
-            percentage_to_peak_shave=[0,0.35,0.7]   #Peak shaving from 0% into grid up to 70% regarding PVS
-            percentage_to_peak_shave_var= percentage_to_peak_shave[lhs_factor_percentage_to_peak_shave]
-            limit_peak_shave=int(power_pv*percentage_to_peak_shave[lhs_factor_percentage_to_peak_shave])
+  #Peak shaving from 0% into grid up to 70% regarding PVS
+            percentage_to_peak_shave_var= lhs_factor_percentage_to_peak_shave*0.7
+            limit_peak_shave=int(power_pv *1000* percentage_to_peak_shave_var)
 
             ###Define additional Setup of House
-            file_name="HiSim/hisim/inputs/loadprofiles/vdi-4655_mfh-existing_try-1_15min.csv"
+            file_name="inputs/loadprofiles/vdi-4655/vdi-4655_mfh-existing_try-1_15min.csv"
 
             #Calculate Energy Components of house based on specific Demand
             file_name="inputs/loadprofiles/vdi-4655/vdi-4655_"+str(factor_which_house[lhs_factor_which_house])+"-existing_try-"+str(lhs_factor_weather_region)+"_15min.csv"
@@ -196,7 +193,7 @@ if __name__ == '__main__':
 
 
             possible_control_strategies=["optimize_own_consumption", "peak_shaving_into_grid","seasonal_storage"]
-            if possible_control_strategies[lhs_factor_control_strategy] == "optimize_own_consumption" or possible_control_strategies[lhs_factor_control_strategy] == "seasonal_storage":
+            if possible_control_strategies[lhs_factor_control_strategy] == "optimize_own_consumption" or lhs_factor_setup_var == 2:
                 limit_peak_shave=0
                 percentage_to_peak_shave_var=0
                 if possible_control_strategies[lhs_factor_control_strategy] == "seasonal_storage":
@@ -342,7 +339,7 @@ if __name__ == '__main__':
                                                                      second_component_input="ControlSignalChooseStorage")
                 my_cfg.add_connection(my_controller_to_heat_storage)
 
-            elif lhs_factor_setup_var==2: #CHP+GH
+            elif lhs_factor_setup_var==1: #CHP+GH
                 my_controller = {"Controller": {"temperature_storage_target_warm_water": 35,
                                                   "temperature_storage_target_heating_water": 55,
                                                   "temperature_storage_target_hysteresis_ww": 30,
@@ -500,7 +497,7 @@ if __name__ == '__main__':
 
 
 
-            elif lhs_factor_setup_var==1: #CHP+GH+ELEKT+H2ST
+            elif lhs_factor_setup_var==2: #CHP+GH+ELEKT+H2ST
                 lhs_factor_control_strategy==2 #Control strategy seasonal Storage bec of setup
                 my_controller = {"Controller": {"temperature_storage_target_warm_water": 35,
                                                   "temperature_storage_target_heating_water": 55,
