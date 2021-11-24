@@ -138,7 +138,7 @@ if __name__ == '__main__':
             if my_hydrogen_storage_size < 1:
                 my_hydrogen_storage_size=1
 
-
+            ####Schranke einbauen mit 3kw
             # Create Simulation SetUp
             my_cfg = ConfigurationGenerator()
 
