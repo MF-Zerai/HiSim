@@ -60,7 +60,7 @@ class HeatStorage(Component):
 
 
 
-        self.state = HeatStorageState(T_sp_ww=20,T_sp_hw=20)
+        self.state = HeatStorageState(T_sp_ww=40,T_sp_hw=40)
         self.previous_state = copy.copy(self.state)
 
 

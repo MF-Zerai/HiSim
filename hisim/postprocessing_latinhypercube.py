@@ -474,7 +474,9 @@ class PostProcessor:
                                  "LimitToShave"])
 
         key_performance_indicators=np.array(["OwnConsumption",
-                                             "Autarky"])
+                                             "Autarky"
+                                             #"NetPresentValue"
+                                             ])
         new_list = self.get_all_relevant_folders()
         target_matrix=self.get_json_data(new_list,target_matrix)
 
@@ -487,8 +489,8 @@ class PostProcessor:
 my_Post_Processor=PostProcessor(folder_name="basic_household_implicit_hyper_cube_",
                                 json_file_name="cfg",
                                 pickle_file_name="data",
-                                start_date="20211121_194520",
-                                end_date="20211122_050000",
+                                start_date="20211201_135100",
+                                end_date="20211201_150000",
                                 heat_map_precision_factor=30)
 my_Post_Processor.run()
 #f=open("HiSim/hisim/results/basic_household_implicit_hyper_cube_20211113_130857/cfg.json",)

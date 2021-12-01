@@ -38,7 +38,7 @@ __status__ = "development"
 
 ####DIRTY CODE->nightshift
 ###Has to be automized an reworked
-def basic_household_implicit_hyper_cube(my_sim: sim.Simulator):
+def basic_household_implicit_hyper_cube_household(my_sim: sim.Simulator):
     my_setup_function = SetupFunction()
     my_setup_function.build(my_sim)
 
@@ -63,7 +63,10 @@ if __name__ == '__main__':
             lhs_factor_weather_region=int(lhs_field[7,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
             lhs_factor_control_strategy=int(lhs_field[8,x]//(1/2)) #either[0,1,2]
             lhs_factor_percentage_to_peak_shave=lhs_field[9,x]
-
+            location_list=["01Bremerhaven","02Rostock","03Hamburg","04Potsdam","05Essen",
+                           "06Bad Marienburg","07Kassel","08Braunlage","09Chemnitz","10Hof",
+                           "11Fichtelberg","12Mannheim","13Muehldorf","14Stoetten","15Garmisch Partenkirchen"]
+            location=location_list[lhs_factor_weather_region-1]
             #Choose house and calculate specific HeatWater/WarmWater/Electricity demand
             factor_which_house=["sfh" , "mfh"]
             if factor_which_house[lhs_factor_which_house] == "sfh":
@@ -109,11 +112,12 @@ if __name__ == '__main__':
                 new_day_highest_heat_demand = np.mean(column_sum_heating[(96 * (x - 1)):(96 * x)])
                 if new_day_highest_heat_demand > highest_heat_demand:
                     highest_heat_demand = new_day_highest_heat_demand
+                    highest_warm_water_demand= np.mean(column_domestic_water_demand[(96 * (x - 1)):(96 * x)])
                 x = x + 1
 
             # Calculate Average Heating demand of the day
-            power_hp = 2.4 * highest_heat_demand *factor_heating_water/1000  # in W
-            power_gh = 2.4 * highest_heat_demand *factor_heating_water/1000  # in w
+            power_hp = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
+            power_gh = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
 
             if factor_which_house[lhs_factor_which_house] == "sfh":
                 power_chp=factor_heating_water/1000*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
@@ -131,9 +135,8 @@ if __name__ == '__main__':
             if lhs_factor_setup_var==0:
                 storage_size_hw=100 * (power_hp)/1000#55litre per each kW power heaters
             else:
-                storage_size_hw = 100 * (power_chp+power_gh)/1000 #55litre per each kW power heaters
-            if storage_size_hw<500:
-                storage_size_hw=500
+                storage_size_hw = 100 * (power_chp*1000+power_gh)/1000 #55litre per each kW power heaters
+
             my_hydrogen_storage_size= 200*power_elekt/2.4 + 2000*power_elekt/2.4* lhs_factor_storage_h2
             if my_hydrogen_storage_size < 1:
                 my_hydrogen_storage_size=1
@@ -174,8 +177,10 @@ if __name__ == '__main__':
                                                  "multiplier": int(factor_electricity)/1000}}
             my_cfg.add_component(my_csv_loader_electricity)
 
+
             #Weather
-            my_cfg.add_component("Weather")
+            my_weather = {"Weather": {"location": location}}
+            my_cfg.add_component(my_weather)
 
             #PVS
             my_pvs = {"PVSystem": {"power": int(power_pv*1000)}}
@@ -358,7 +363,7 @@ if __name__ == '__main__':
                 my_cfg.add_component(my_chp)
 
                 # GasHeater
-                my_gas_heater = {"GasHeater": {"temperaturedelta": 10,
+                my_gas_heater = {"GasHeater": {"temperaturedelta": 15,
                                  "power_max": int(power_gh)}}
                 my_cfg.add_component(my_gas_heater)
 
@@ -516,7 +521,7 @@ if __name__ == '__main__':
                 my_cfg.add_component(my_chp)
 
                 # GasHeater
-                my_gas_heater = {"GasHeater": {"temperaturedelta": 10,
+                my_gas_heater = {"GasHeater": {"temperaturedelta": 15,
                                                "power_max": int(power_gh)}}
                 my_cfg.add_component(my_gas_heater)
 

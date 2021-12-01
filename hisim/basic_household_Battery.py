@@ -16,7 +16,7 @@ from components import pvs
 from components import advanced_battery
 from components import configuration
 import globals
-from components.demand_el import CSVLoader
+from components.demand_el import DemandEL
 
 
 __authors__ = "Max Hillen, Tjarko Tjaden"
@@ -90,13 +90,13 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_sim.set_parameters(my_sim_params)
 
     #ElectricityDemand
-    csv_load_power_demand = CSVLoader(component_name="csv_load_power",
+    csv_load_power_demand = DemandEL(component_name="csv_load_power",
                                       csv_filename="loadprofiles/EFH_Bestand_TRY_5_Profile_1min.csv",
                                       column=0,
                                       loadtype=loadtypes.LoadTypes.Electricity,
                                       unit=loadtypes.Units.Watt,
                                       column_name="power_demand",
-                                      simulation_parameters=my_sim_params,
+                                      my_simulation_parameters=my_sim_params,
                                       multiplier=6)
     my_sim.add_component(csv_load_power_demand)
 

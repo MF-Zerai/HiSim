@@ -38,7 +38,7 @@ __status__ = "development"
 
 ####DIRTY CODE->nightshift
 ###Has to be automized an reworked
-def basic_household_implicit_hyper_cube(my_sim: sim.Simulator):
+def basic_household_implicit_hyper_cube_industry(my_sim: sim.Simulator):
     my_setup_function = SetupFunction()
     my_setup_function.build(my_sim)
 

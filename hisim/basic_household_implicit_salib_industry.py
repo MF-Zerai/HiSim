@@ -39,7 +39,7 @@ __status__ = "development"
 
 ####DIRTY CODE->nightshift
 ###Has to be automized an reworked
-def basic_household_implicit_hyper_cube(my_sim: sim.Simulator):
+def basic_household_implicit_salib_industry(my_sim: sim.Simulator):
     my_setup_function = SetupFunction()
     my_setup_function.build(my_sim)
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     param_values = saltelli.sample(problem, 1024)
     z=0
     x=1
-    np.savetxt("param_values.txt", param_values)
+    np.savetxt("param_values_salib_industry.txt", param_values)
     while z < param_values.shape[0]:
         try:
             x=z-1

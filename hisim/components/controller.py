@@ -50,7 +50,7 @@ class Controller(cp.Component):
     CheckPeakShaving="CheckPeakShaving"
 
     def __init__(self,
-                 temperature_storage_target_warm_water = 30,
+                 temperature_storage_target_warm_water = 35,
                  temperature_storage_target_heating_water =55,
                  temperature_storage_target_hysteresis_ww=30,
                  temperature_storage_target_hysteresis_hw=50,
@@ -312,7 +312,6 @@ class Controller(cp.Component):
         control_signal_chp = 0
         control_signal_gas_heater = 0
         control_signal_heat_pump= 0
-        control_signal_choose_storage=1
         temperature_storage_target_C=temperature_storage_target_C
         timestep_of_hysteresis=timestep_of_hysteresis
 
@@ -354,7 +353,6 @@ class Controller(cp.Component):
                     control_signal_heat_pump = 0
                     control_signal_gas_heater = 0
                     control_signal_chp = 0
-                    control_signal_choose_storage = 2
 
         self.state.control_signal_gas_heater = control_signal_gas_heater
         self.state.control_signal_chp = control_signal_chp
@@ -365,7 +363,7 @@ class Controller(cp.Component):
 
 
         return temperature_storage_target_C, \
-               timestep_of_hysteresis,control_signal_choose_storage
+               timestep_of_hysteresis
 
 
 
@@ -397,40 +395,43 @@ class Controller(cp.Component):
         #But only one Storage can be heated up in a TimeStep!
 
         #Simulate WarmWater
+
         delta_temperature_ww = self.state.temperature_storage_target_ww_C - stsv.get_input_value(self.temperature_storage_warm_water)
         delta_temperature_hw = self.state.temperature_storage_target_hw_C - stsv.get_input_value(self.temperature_storage_heating_water)
         #just happend in parameterstudies
-        control_signal_choose_storage=2
-        if stsv.get_input_value(self.temperature_storage_warm_water)<0 or stsv.get_input_value(self.temperature_storage_heating_water)<0:
-            if stsv.get_input_value(self.temperature_storage_warm_water) < stsv.get_input_value(self.temperature_storage_heating_water):
+        if delta_temperature_ww>=0 and delta_temperature_hw>=0:
+            if delta_temperature_hw <= delta_temperature_ww:
                 control_signal_choose_storage = 1
             else:
                 control_signal_choose_storage = 2
-        else:
-            if delta_temperature_hw < 0 and delta_temperature_ww < 0:
-                if delta_temperature_hw < delta_temperature_ww:
-                    control_signal_choose_storage = 1
-                else:
-                    control_signal_choose_storage = 2
-            if control_signal_choose_storage == 1:
-                self.state.temperature_storage_target_ww_C, self.state.timestep_of_hysteresis_ww, control_signal_choose_storage = self.simulate_storage(stsv=stsv,
-                                                          delta_temperature=delta_temperature_ww,
-                                                          timestep=timestep,
-                                                          temperature_storage=stsv.get_input_value(self.temperature_storage_warm_water),
-                                                          temperature_storage_target=self.temperature_storage_target_warm_water,
-                                                          temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_ww,
-                                                          temperature_storage_target_C=self.state.temperature_storage_target_ww_C,
-                                                          timestep_of_hysteresis=self.state.timestep_of_hysteresis_ww)
-            elif control_signal_choose_storage == 2:
-                delta_temperature_hw = self.state.temperature_storage_target_hw_C - stsv.get_input_value(self.temperature_storage_heating_water)
-                self.state.temperature_storage_target_hw_C, self.state.timestep_of_hysteresis_hw, zero = self.simulate_storage(stsv=stsv,
-                                                          delta_temperature=delta_temperature_hw,
-                                                          timestep=timestep,
-                                                          temperature_storage=stsv.get_input_value(self.temperature_storage_heating_water),
-                                                          temperature_storage_target=self.temperature_storage_target_heating_water,
-                                                          temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_hw,
-                                                          temperature_storage_target_C=self.state.temperature_storage_target_hw_C,
-                                                          timestep_of_hysteresis=self.state.timestep_of_hysteresis_hw)
+        elif delta_temperature_ww<0 and delta_temperature_hw<0:
+            if delta_temperature_hw <= delta_temperature_ww:
+                control_signal_choose_storage = 1
+            else:
+                control_signal_choose_storage = 2
+        elif delta_temperature_ww<=0 and delta_temperature_hw>=0:
+            control_signal_choose_storage = 2
+        elif delta_temperature_ww >= 0 and delta_temperature_hw <= 0:
+            control_signal_choose_storage = 1
+        if control_signal_choose_storage == 1:
+            self.state.temperature_storage_target_ww_C, self.state.timestep_of_hysteresis_ww = self.simulate_storage(stsv=stsv,
+                                                      delta_temperature=delta_temperature_ww,
+                                                      timestep=timestep,
+                                                      temperature_storage=stsv.get_input_value(self.temperature_storage_warm_water),
+                                                      temperature_storage_target=self.temperature_storage_target_warm_water,
+                                                      temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_ww,
+                                                      temperature_storage_target_C=self.state.temperature_storage_target_ww_C,
+                                                      timestep_of_hysteresis=self.state.timestep_of_hysteresis_ww)
+        elif control_signal_choose_storage == 2:
+            delta_temperature_hw = self.state.temperature_storage_target_hw_C - stsv.get_input_value(self.temperature_storage_heating_water)
+            self.state.temperature_storage_target_hw_C, self.state.timestep_of_hysteresis_hw = self.simulate_storage(stsv=stsv,
+                                                      delta_temperature=delta_temperature_hw,
+                                                      timestep=timestep,
+                                                      temperature_storage=stsv.get_input_value(self.temperature_storage_heating_water),
+                                                      temperature_storage_target=self.temperature_storage_target_heating_water,
+                                                      temperature_storage_target_hysteresis=self.temperature_storage_target_hysteresis_hw,
+                                                      temperature_storage_target_C=self.state.temperature_storage_target_hw_C,
+                                                      timestep_of_hysteresis=self.state.timestep_of_hysteresis_hw)
 
         stsv.set_output_value(self.control_signal_choose_storage, control_signal_choose_storage)
 
