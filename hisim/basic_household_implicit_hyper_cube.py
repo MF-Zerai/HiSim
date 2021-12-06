@@ -44,7 +44,9 @@ def basic_household_implicit_hyper_cube_household(my_sim: sim.Simulator):
 
 if __name__ == '__main__':
 
-    lhs_field=lhsmdu.sample(10, 10)
+    lhs_field=np.load("data.npy")
+    lhs_field = lhsmdu.sample(10, 10)
+    lhs_field=lhs_field[:,0:5]
     z=1
     try:
         while z <= lhs_field.shape[1]:
@@ -92,7 +94,7 @@ if __name__ == '__main__':
             lhs_factor_percentage_to_peak_shave
             #Percentage_to-Peak_shave
   #Peak shaving from 0% into grid up to 70% regarding PVS
-            percentage_to_peak_shave_var= lhs_factor_percentage_to_peak_shave*0.7
+            percentage_to_peak_shave_var= lhs_factor_percentage_to_peak_shave*0.5
             limit_peak_shave=int(power_pv *1000* percentage_to_peak_shave_var)
 
             ###Define additional Setup of House
@@ -116,8 +118,8 @@ if __name__ == '__main__':
                 x = x + 1
 
             # Calculate Average Heating demand of the day
-            power_hp = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
-            power_gh = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
+            power_hp = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
+            power_gh = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
 
             if factor_which_house[lhs_factor_which_house] == "sfh":
                 power_chp=factor_heating_water/1000*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
@@ -719,7 +721,7 @@ if __name__ == '__main__':
 
             # Export configuration file
             my_cfg.dump()
-            os.system("python hisim.py basic_household_implicit_hyper_cube basic_household_implicit_hyper_cube")
+            os.system("python hisim.py basic_household_implicit_hyper_cube basic_household_implicit_hyper_cube_household")
 
 
     except OSError:

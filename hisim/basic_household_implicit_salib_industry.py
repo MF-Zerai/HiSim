@@ -59,9 +59,10 @@ if __name__ == '__main__':
 
 
     problem = {
-        'num_vars': 5,
-        'names': ['lhs_factor_profile', 'lhs_factor_battery', 'lhs_factor_pv', 'lhs_factor_control_strategy', 'lhs_factor_percentage_to_peak_shave'],
+        'num_vars': 6,
+        'names': ['lhs_factor_profile', 'lhs_factor_battery', 'lhs_factor_pv', 'lhs_factor_control_strategy', 'lhs_factor_percentage_to_peak_shave','lhs_factor_weather_region'],
         'bounds': [[0, 1],
+                   [0, 1],
                    [0, 1],
                    [0, 1],
                    [0, 1],
@@ -81,8 +82,14 @@ if __name__ == '__main__':
             lhs_factor_pv = param_values[x,2]# in range of [0 , 1]
             lhs_factor_control_strategy=int(param_values[x,3]//(1/3)) #either[0,1,]
             lhs_factor_percentage_to_peak_shave=int(param_values[x,4]//(1/3))
+            lhs_factor_weather_region=int(param_values[x,5]//(1/15)+1)
             # lhs_factor_weather_region=int(lhs_field[5,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
             ###see which company
+            location_list = ["01Bremerhaven", "02Rostock", "03Hamburg", "04Potsdam", "05Essen",
+                             "06Bad Marienburg", "07Kassel", "08Braunlage", "09Chemnitz", "10Hof",
+                             "11Fichtelberg", "12Mannheim", "13Muehldorf", "14Stoetten", "15Garmisch Partenkirchen"]
+            location = location_list[lhs_factor_weather_region - 1]
+
             counter = 0
             for number in company_number_sum_list:
                 if lhs_factor_profile <= number:
@@ -146,8 +153,8 @@ if __name__ == '__main__':
             my_cfg.add_component(my_csv_loader_electricity)
 
             #Weather
-            my_cfg.add_component("Weather")
-
+            my_weather = {"Weather": {"location": location}}
+            my_cfg.add_component(my_weather)
             #PVS
             my_pvs = {"PVSystem": {"power": int(power_pv*1000)}}
             my_cfg.add_component(my_pvs)
@@ -212,7 +219,7 @@ if __name__ == '__main__':
 
             # Export configuration file
             my_cfg.dump()
-            os.system("python hisim.py basic_household_implicit_hyper_cube basic_household_implicit_hyper_cube")
+            os.system("python hisim.py basic_household_implicit_salib_industry basic_household_implicit_salib_industry")
 
         except Exception as e: print(e)
 

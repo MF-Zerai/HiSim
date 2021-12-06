@@ -85,10 +85,10 @@ class GasHeater(Component):
         gas_power = maximum_power *eff_th_real* control_signal
         cw = 4182
         mass_out_temp=self.temperaturedelta+stsv.get_input_value(self.mass_inp_temp)
-        mass_out=gas_power/(cw*mass_out_temp)
+        mass_out=gas_power/(cw*self.temperaturedelta)
         p_th=cw*mass_out*(mass_out_temp-stsv.get_input_value(self.mass_inp_temp))
 
-        stsv.set_output_value(self.p_th, p_th)  # efficiency
+        stsv.set_output_value(self.p_th, gas_power)  # efficiency
         stsv.set_output_value(self.mass_out_temp, mass_out_temp)  # efficiency
         stsv.set_output_value(self.mass_out, mass_out)  # efficiency
         stsv.set_output_value(self.gas_demand, gas_power)  # gas consumption

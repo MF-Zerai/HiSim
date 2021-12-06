@@ -28,22 +28,29 @@ class PostProcessor:
                  plot_strategy_own_consumption=True,
                  plot_strategy_seasonal_storage=True,
                  plot_strategy_peak_shave_into_grid =True,
-                 plot_self_consumption=True,
-                 plot_autarky=True,
-                 plot_battery_and_pv=True,
-                 plot_h2_storage_relative_demand=True,
-                 plot_h2_storage_relative_battery=True,
-                 plot_peak_shaving_demand_accurancy=True,
-                 plot_peak_shaving_generation_accurancy=True):
+                 plot_own_consumption=False,
+                 plot_autarky=False,
+                 plot_battery_and_pv=False,
+                 plot_h2_storage_relative_demand=False,
+                 plot_h2_storage_relative_battery=False,
+                 plot_peak_shaving_demand_accurancy=False,
+                 plot_peak_shaving_generation_accurancy=False,
+                 plot_net_present_value=True,
+                 electricity_price_from_grid_household=0.3205,
+                 electricity_price_into_grid_household=0.3205,
+                 interest_rate=0.0542,
+                 time_frame_to_look_at=20):
         self.folder_name=folder_name
         self.start_date = start_date
         self.end_date = end_date
         self.json_file_name = json_file_name
         self.pickle_file_name = pickle_file_name
         self.heat_map_precision_factor = heat_map_precision_factor
+        self.electricity_price_from_grid_household = electricity_price_from_grid_household
+        self.electricity_price_into_grid_household = electricity_price_into_grid_household
+        self.interest_rate = interest_rate
+        self.time_frame_to_look_at =time_frame_to_look_at
 
-        self.flags_performance_indicators ={"plot_self_consumption": plot_self_consumption,
-                                            "plot_autarky": plot_autarky}
         self.flags_plots ={"plot_heat_map": plot_heat_map}
         self.flags_houses = {"plot_all_houses": plot_all_houses,
                               "plot_sfh": plot_sfh,
@@ -56,7 +63,11 @@ class PostProcessor:
                               "plot_h2_storage_relative_demand": plot_h2_storage_relative_demand,
                                "plot_h2_storage_relative_battery": plot_h2_storage_relative_battery,
                                "plot_peak_shaving_demand_accurancy": plot_peak_shaving_demand_accurancy,
-                               "plot_peak_shaving_generation_accurancy": plot_peak_shaving_generation_accurancy}
+                               "plot_peak_shaving_generation_accurancy": plot_peak_shaving_generation_accurancy,
+                               "plot_net_present_value" : plot_net_present_value}
+        self.flags_kpis={"plot_own_consumption":plot_own_consumption,
+                         "plot_autarky":plot_autarky,
+                         "plot_net_present_value": plot_net_present_value}
     def get_json_data(self,new_list,target_matrix):
 
         for a in  range(len(new_list)):
@@ -104,15 +115,21 @@ class PostProcessor:
         while a < len(folder_list):
             a=a+1
             if self.folder_name in folder_list[a-1]:
-                variable=int(folder_list[a-1].replace(self.folder_name,"").replace("_",""))
+                split_string=folder_list[a-1].split("_",20)
+                if "." in split_string[len(split_string)-1]:
+                    variable = int(folder_list[a - 1].replace(self.folder_name, "").replace(split_string[len(split_string)-1],"").replace("_", ""))
+                else:
+                    variable=int(folder_list[a-1].replace(self.folder_name,"").replace("_",""))
                 if start_date <= variable and variable<=end_date:
                     new_list.append(folder_list[a-1])
         return new_list
 
     def get_pickle_informations(self,new_list,key_performance_indicators,target_matrix):
+        b=0
         for a in  range(len(new_list)):
             newrow = []
             objects=[]
+
             #soemtimes pickle isn't saved. idk why
             try:
                 with open((os.path.join(globals.HISIMPATH["results"],
@@ -120,6 +137,7 @@ class PostProcessor:
                           "rb") as openfile:
                     try:
                         objects.append(pickle.load(openfile))
+                        b=b+1
                     except OSError:
                         print(self.pickle_file_name)
                     #Here starts Calculation of Parameters
@@ -197,6 +215,61 @@ class PostProcessor:
 
                     own_consumption=(sum_Produced-sum_Electricity_Into_Grid)/sum_Produced
 
+                    bat_size=target_matrix[b,6]#kwh
+                    cost_bat=(1374.6 * bat_size ** (-0.203))* bat_size
+
+                    pv_size=target_matrix[b,5] #kW
+                    if pv_size == None:
+                        pv_size=0
+                        cost_pv=0
+                    else:
+                        pv_size = target_matrix[b, 5] / 1000
+                        cost_pv=(2095.8 * pv_size ** (-0.166))* pv_size
+
+                    chp_size=target_matrix[b,9] #kW
+                    if chp_size == None:
+                        chp_size=0
+                        cost_chp=0
+                    else:
+                        chp_size = target_matrix[b, 9] / 1000
+                        cost_chp=(25689 * chp_size ** (-0.581))* chp_size
+
+
+                    h2_storage_size=target_matrix[b,13] #in liters, need to be changed into MWH!!
+                    if h2_storage_size == None:
+                        h2_storage_size=0
+                        cost_h2_storage=0
+                    else:
+                        h2_storage_size = target_matrix[b, 13]
+                        cost_h2_storage = (14990 * h2_storage_size ** (-0.079)) * h2_storage_size
+
+                    electrolzer_size=target_matrix[b,10]#in liters, need to be changed into MWH!!
+                    if electrolzer_size == None:
+                        electrolzer_size=0
+                        cost_chp=0
+                        cost_electrolyzer=0
+                    else:
+                        electrolzer_size = target_matrix[b, 10]
+                        cost_electrolyzer = (5012.9 * electrolzer_size ** (-0.054)) * electrolzer_size
+
+                    if pv_size<10:
+                        electricity_prize_into_grid=0.0769
+                    elif pv_size<40 and pv_size>10:
+                        electricity_prize_into_grid = 0.0747
+                    elif pv_size>40:
+                        electricity_prize_into_grid = 0.0587
+
+                    cost_total_investment= cost_bat + cost_pv + cost_chp + cost_h2_storage + cost_electrolyzer
+                    #choose here electricity prize# has to be added!
+                    income_delta= (0.25/1000)*(-sum_Electricity_From_Grid* self.electricity_price_from_grid_household + sum_Electricity_Into_Grid *electricity_prize_into_grid)
+
+                    net_present_value_with_bat= - cost_total_investment + income_delta*(1+self.interest_rate)**(self.time_frame_to_look_at)
+
+                    if "CHP - ElectricityOutput [Electricity - W]" in A:
+                        if "HeatPumpHplib - ElectricalInputPower [Electricity - W]" in A:
+                            pass
+
+                    net_present_value_without_bat= 0 +0
                     if own_consumption > 1:
                         print("owncumption is bigger than one :" +str(own_consumption))
                         own_consumption=1
@@ -212,6 +285,7 @@ class PostProcessor:
 
                     newrow.append(own_consumption) #own_consumption
                     newrow.append(autarky) #autarky
+                    newrow.append(net_present_value)
                     key_performance_indicators = np.vstack([key_performance_indicators, newrow])
 
             except OSError:
@@ -236,6 +310,10 @@ class PostProcessor:
             if component in "plot_battery_and_pv":
                 x_axis.append((target_matrix[x, 5] / 1000) / target_matrix[x, 4])  # in kW/kW
                 y_axis.append(target_matrix[x, 6] / (target_matrix[x, 4]))  # in kWh/kw
+            elif component in "plot_net_present_value":
+                x_axis.append((target_matrix[x, 5] / 1000) / target_matrix[x, 4])  # in kW/kW
+                y_axis.append(target_matrix[x, 6] / (target_matrix[x, 4]))  # in kWh/kw
+
             elif component in "plot_h2_storage_relative_demand":
                 if target_matrix[x, 13] == None or target_matrix[x, 13] == 0:
                     breaker = True
@@ -253,8 +331,6 @@ class PostProcessor:
             elif component in "plot_peak_shaving_generation_accurancy":
                 print("stop")
 
-            elif component in "plot_peak_shaving_demand_accurancy":
-                print("stop")
             else:
                 print("no component to print choosed")
                 return 1, 0, 0, breaker
@@ -264,6 +340,8 @@ class PostProcessor:
             key_to_look_at = key_performance_indicators[1::, 0]
         elif kpi == "Autarky":
             key_to_look_at = key_performance_indicators[1::, 1]
+        elif kpi == "NetPresentValue":
+            key_to_look_at = key_performance_indicators[1::, 2]
 
         # Set up Matrix and fill with values-Has to be done bec. of Latin Hypercube design
         plot_boundaries = [[((min(x_axis))), (max(x_axis))],
@@ -373,10 +451,19 @@ class PostProcessor:
                 target_matrix=target_matrix, key_performance_indicators=key_performance_indicators, x=house)
             if breaker:
                 continue
-
+    def analyze_salib(self):
+        pass
     def plot_heat_map(self,target_matrix,key_performance_indicators):
 
         for kpi in key_performance_indicators[0,:]:
+            if kpi== "OwnConsumption" and self.flags_kpis.get("plot_own_consumption")==True:
+                pass
+            elif kpi == "Autarky" and self.flags_kpis.get("plot_autarky") == True:
+                pass
+            elif kpi == "NetPresentValue" and self.flags_kpis.get("plot_net_present_value") == True:
+                pass
+            else:
+                continue
             for house in self.flags_houses:
                 if self.flags_houses[house]==False:
                     continue
@@ -399,7 +486,10 @@ class PostProcessor:
                         elif breaker == True and Z==1:
                             continue
                         fig, ax = plt.subplots()
-                        cax=ax.pcolormesh(Z,cmap="YlGnBu",vmin=0)   #vmax=1 for own consumption good
+                        if component == "plot_net_present_value":
+                            cax = ax.pcolormesh(Z, cmap="YlGnBu")  # vmax=1 for own consumption good
+                        else:
+                            cax=ax.pcolormesh(Z,cmap="YlGnBu",vmin=0)   #vmax=1 for own consumption good
                         cbar = fig.colorbar(cax)
                         cbar.ax.set_ylabel(kpi)
 
@@ -414,18 +504,19 @@ class PostProcessor:
                         if component == "plot_h2_storage_relative_demand":
                             plt.xlabel('PV-Power kWp/Battery-Capacity kWh')
                             plt.ylabel('H2 Storage in litres / MWh')
-                            plt.show()
                         elif component == "plot_h2_storage_relative_battery":
                             plt.xlabel('PV-Power kWp/Demand MWh')
                             plt.ylabel('H2 Storage in litres / BatteryCapacity kWh')
-                            plt.show()
+                        elif component == "plot_net_present_value":
+                            plt.xlabel('PV-Power kWp/Demand MWh')
+                            plt.ylabel('H2 Storage in litres / BatteryCapacity kWh')
                         else:
                             plt.xlabel('PV-Power kWp/MWh')
                             plt.ylabel('Battery-Capacity kWh/MWh')
-                            plt.show()
+
                     #hier ne ebsser Abrufung bauen!!!!
-
-
+                        plt.savefig(""+component+"_" + house + " _with_" + strategy + ".png")
+                        plt.show()
 
 
 
@@ -474,8 +565,8 @@ class PostProcessor:
                                  "LimitToShave"])
 
         key_performance_indicators=np.array(["OwnConsumption",
-                                             "Autarky"
-                                             #"NetPresentValue"
+                                             "Autarky",
+                                             "NetPresentValue"
                                              ])
         new_list = self.get_all_relevant_folders()
         target_matrix=self.get_json_data(new_list,target_matrix)
@@ -483,16 +574,55 @@ class PostProcessor:
         key_performance_indicators=self.get_pickle_informations(new_list,key_performance_indicators,target_matrix)
         #self.calculate_correlations(key_performance_indicators,target_matrix)
         self.plot_heat_map(target_matrix,key_performance_indicators)
+        self.analyze_salib()
 
 
-
-my_Post_Processor=PostProcessor(folder_name="basic_household_implicit_hyper_cube_",
+my_Post_Processor=PostProcessor(folder_name="basic_household_implicit_salib_household_",
                                 json_file_name="cfg",
                                 pickle_file_name="data",
-                                start_date="20211201_135100",
-                                end_date="20211201_150000",
+                                start_date="20211201_100100",
+                                end_date="20211204_150000",
                                 heat_map_precision_factor=30)
 my_Post_Processor.run()
 #f=open("HiSim/hisim/results/basic_household_implicit_hyper_cube_20211113_130857/cfg.json",)
 #data = json.load(f)
 
+'''
+Metalworking 14
+development
+Water treatment
+Producing industry
+Manufacturing industry 3
+Hotel
+Health care services
+Services 2
+Chemical industry
+Waste disposal 4
+Woodworking industry 2
+Building materials 1
+Woodworking industry 3
+Furniture retail 3
+Gravel 4
+Production 2
+Quarry 4
+Polymer processing 2
+Sawmill 1
+Garden 2
+School 35
+(Pre-)School 1
+Other 8
+Zoo
+Event hall 4
+Graveyard 2
+Office building 15
+Water pump 5
+Swimming Pool 4
+Gym 2
+Library 1
+Tunnel 1
+Firefighters 1
+Trailer park
+Garage
+toolmanufactor # aber nicht so als Name
+electroplating # aber nicht so als anmae
+'''

@@ -136,8 +136,8 @@ if __name__ == '__main__':
                 x = x + 1
 
             # Calculate Average Heating demand of the day
-            power_hp = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
-            power_gh = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
+            power_hp = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
+            power_gh = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
 
             if factor_which_house[lhs_factor_which_house] == "sfh":
                 power_chp=factor_heating_water/1000*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
@@ -739,7 +739,7 @@ if __name__ == '__main__':
 
             # Export configuration file
             my_cfg.dump()
-            os.system("python hisim.py basic_household_implicit_hyper_cube basic_household_implicit_hyper_cube")
+            os.system("python hisim.py basic_household_implicit_salib basic_household_implicit_salib_household")
 
 
     except OSError:
