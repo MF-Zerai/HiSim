@@ -76,8 +76,8 @@ class AdvancedBattery(Component):
         self._BAT2AC_c_out = d[12]
         self._P_AC2BAT_DEV = d[13]
         self._P_BAT2AC_DEV = d[14]
-        self._P_BAT2AC_out = d[15]
-        self._P_AC2BAT_in = d[16]
+        self._P_BAT2AC_out = cap * 0.6
+        self._P_AC2BAT_in = cap * 0.6
         self._t_DEAD = int(round(d[17]))
         self._SOC_h = d[18]
 

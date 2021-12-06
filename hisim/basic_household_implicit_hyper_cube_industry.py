@@ -68,7 +68,7 @@ if __name__ == '__main__':
             lhs_factor_battery= lhs_field[1,x]# in range of [0 , 1]
             lhs_factor_pv = lhs_field[2,x]# in range of [0 , 1]
             lhs_factor_control_strategy=int(lhs_field[3,x]//(1/3)) #either[0,1,]
-            lhs_factor_percentage_to_peak_shave=int(lhs_field[4,x]//(1/3))
+            lhs_factor_percentage_to_peak_shave=lhs_field[4,x]
             lhs_factor_weather_region=int(lhs_field[5,x]//(1/15)+1)   #either exact [0,1,2,3...13,14]
             ###see which company
             location_list=["01Bremerhaven","02Rostock","03Hamburg","04Potsdam","05Essen",
@@ -104,16 +104,14 @@ if __name__ == '__main__':
 
             power_pv = (0.01 + (13 - 0.01) * lhs_factor_pv) * sum_anual_electrcitcy_demand / (1000*1000)  # in kW
 
-            # Percentage_to-Peak_shave
-            percentage_to_peak_shave=[0,0.35,0.7]   #Peak shaving from 0% into grid up to 70% regarding PVS
-            percentage_to_peak_shave_var= percentage_to_peak_shave[lhs_factor_percentage_to_peak_shave]
-
+            # Percentage_to-Peak_shave  #Peak shaving from 0% into grid up to 70% regarding PVS
+            percentage_to_peak_shave_var = lhs_factor_percentage_to_peak_shave * 0.7
             possible_control_strategies=["optimize_own_consumption", "peak_shaving_from_grid","peak_shaving_into_grid"]
             if possible_control_strategies[lhs_factor_control_strategy] == "optimize_own_consumption":
                 limit_peak_shave=0
                 percentage_to_peak_shave_var=0
             elif possible_control_strategies[lhs_factor_control_strategy] == "peak_shaving_from_grid":
-                limit_peak_shave = int(power_pv *1000* percentage_to_peak_shave[lhs_factor_percentage_to_peak_shave])
+                limit_peak_shave = int(power_pv *1000* percentage_to_peak_shave_var)
 
             elif possible_control_strategies[lhs_factor_control_strategy] == "peak_shaving_into_grid":
                 limit_peak_shave = int(max_electricity_demand * percentage_to_peak_shave_var)

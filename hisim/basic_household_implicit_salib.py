@@ -109,7 +109,6 @@ if __name__ == '__main__':
                 battery_capacity=1
 
             power_pv=(0.01+(8-0.01)*lhs_factor_pv)*factor_electricity/1000#in kW
-            lhs_factor_percentage_to_peak_shave
             #Percentage_to-Peak_shave
   #Peak shaving from 0% into grid up to 70% regarding PVS
             percentage_to_peak_shave_var= lhs_factor_percentage_to_peak_shave*0.7
@@ -137,7 +136,7 @@ if __name__ == '__main__':
 
             # Calculate Average Heating demand of the day
             power_hp = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
-            power_gh = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
+            power_gh = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
 
             if factor_which_house[lhs_factor_which_house] == "sfh":
                 power_chp=factor_heating_water/1000*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
