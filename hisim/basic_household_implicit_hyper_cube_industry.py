@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
 
             # pv and battery is in every set_up
-            battery_capacity = (0.01 + (12 - 0.01) * lhs_factor_battery) * sum_anual_electrcitcy_demand / (1000*1000*1000)  # in kWh
+            battery_capacity = (0.01 + (12 - 0.01) * lhs_factor_battery) * sum_anual_electrcitcy_demand / (1000*1000)  # in kWh
             if int(battery_capacity) == 0:
                 battery_capacity = 1
 

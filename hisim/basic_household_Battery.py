@@ -16,7 +16,7 @@ from components import pvs
 from components import advanced_battery
 from components import configuration
 import globals
-from components.demand_el import DemandEL
+from components.csvloader import CSVLoaderEL
 
 
 __authors__ = "Max Hillen, Tjarko Tjaden"
@@ -31,6 +31,7 @@ __status__ = "development"
 power = 10E3
 #capacitiy=  25 100
 capacitiy=100
+
 def basic_household(my_sim,capacity=capacitiy,power=power):
     """
     This setup function represents an household including
@@ -48,7 +49,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
 
     # Set simulation parameters
     year = 2021
-    seconds_per_timestep = 60
+    seconds_per_timestep = 60*15
 
     # Set weather
     location = "Aachen"
@@ -90,13 +91,13 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_sim.set_parameters(my_sim_params)
 
     #ElectricityDemand
-    csv_load_power_demand = DemandEL(component_name="csv_load_power",
-                                      csv_filename="loadprofiles/EFH_Bestand_TRY_5_Profile_1min.csv",
-                                      column=0,
+    csv_load_power_demand = CSVLoaderEL(component_name="csv_load_power",
+                                      csv_filename="loadprofiles/vdi-4655/vdi-4655_sfh-existing_try-1_15min.csv",
+                                      column=1,
                                       loadtype=loadtypes.LoadTypes.Electricity,
                                       unit=loadtypes.Units.Watt,
                                       column_name="power_demand",
-                                      my_simulation_parameters=my_sim_params,
+                                      simulation_parameters=my_sim_params,
                                       multiplier=6)
     my_sim.add_component(csv_load_power_demand)
 
@@ -117,13 +118,13 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
                                         seconds_per_timestep=seconds_per_timestep)
     '''
     #Build Battery
-    fparameter = np.load(globals.HISIMPATH["bat_parameter"])
-    my_battery = advanced_battery.AdvancedBattery(my_simulation_parameters=my_sim_params,capacity=capacity)
+    #fparameter = np.load(globals.HISIMPATH["bat_parameter"])
+    #my_battery = advanced_battery.AdvancedBattery(my_simulation_parameters=my_sim_params,capacity=capacity)
 
 
 
     #Build Controller
-    my_controller = controller.Controller(strategy= "peak_shaving_into_grid",limit_to_shave=10000*0.5)
+    my_controller = controller.Controller(strategy= "optimize_own_consumption",limit_to_shave=0)
     '''
         residual_power = CSVLoader(component_name="residual_power",
                                csv_filename="advanced_battery/Pr_ideal_1min.csv",
@@ -241,10 +242,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_photovoltaic_system.connect_input(my_photovoltaic_system.WindSpeed,
                                          my_weather.ComponentName,
                                          my_weather.WindSpeed)
-    my_sim.add_component(my_photovoltaic_system)
-
-
-
+    '''
     my_battery.connect_input(my_battery.LoadingPowerInput,
                                my_controller.ComponentName,
                                my_controller.ElectricityToOrFromBatteryTarget)
@@ -252,7 +250,7 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
     my_controller.connect_input(my_controller.ElectricityToOrFromBatteryReal,
                                my_battery.ComponentName,
                                my_battery.ACBatteryPower)
-
+    '''
 
     my_controller.connect_input(my_controller.ElectricityConsumptionBuilding,
                                csv_load_power_demand.ComponentName,
@@ -261,7 +259,8 @@ def basic_household(my_sim,capacity=capacitiy,power=power):
                                my_photovoltaic_system.ComponentName,
                                my_photovoltaic_system.ElectricityOutput)
 
-    my_sim.add_component(my_battery)
+    my_sim.add_component(my_photovoltaic_system)
+    #my_sim.add_component(my_battery)
     my_sim.add_component(my_controller)
 
 

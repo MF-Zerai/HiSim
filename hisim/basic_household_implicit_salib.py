@@ -39,7 +39,7 @@ __status__ = "development"
 ####DIRTY CODE->nightshift
 ###Has to be automized an reworked
 def basic_household_implicit_salib_household(my_sim: sim.Simulator):
-    my_setup_function = SetupFunction()
+    my_setup_function = SetupFunction(number_of_simulation=1)
     my_setup_function.build(my_sim)
 
 if __name__ == '__main__':
@@ -135,8 +135,9 @@ if __name__ == '__main__':
                 x = x + 1
 
             # Calculate Average Heating demand of the day
-            power_hp = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
-            power_gh = 1.5* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
+            power_hp= (factor_heating_water + factor_warm_water)*0.0005*1000 # in W
+            #power_hp = 1.8* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in W
+            power_gh = 1.7* (highest_heat_demand*factor_heating_water+highest_warm_water_demand*factor_warm_water)/1000  # in w
 
             if factor_which_house[lhs_factor_which_house] == "sfh":
                 power_chp=factor_heating_water/1000*0.15*(np.mean(column_sum_heating))*8.76/1000 #[kWel]
@@ -253,6 +254,7 @@ if __name__ == '__main__':
 
 
                 # Outputs from PVSystem
+
                 my_pvs_to_controller = ComponentsConnection(first_component="PVSystem",
                                                             second_component="Controller",
                                                             method="Manual",
@@ -737,7 +739,7 @@ if __name__ == '__main__':
 
 
             # Export configuration file
-            my_cfg.dump()
+            my_cfg.dump(number_of_simulation=1)
             os.system("python hisim.py basic_household_implicit_salib basic_household_implicit_salib_household")
 
 

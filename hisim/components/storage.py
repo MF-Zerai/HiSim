@@ -47,7 +47,7 @@ class HeatStorage(Component):
     def __init__(self,
                  V_SP_heating_water= 1000,
                  V_SP_warm_water=200,
-                 temperature_of_warm_water_extratcion=35,
+                 temperature_of_warm_water_extratcion=32,
                  ambient_temperature = 15,
                  sim_params=None):
         super().__init__("HeatStorage")

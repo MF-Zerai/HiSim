@@ -40,7 +40,7 @@ __status__ = "development"
 ####DIRTY CODE->nightshift
 ###Has to be automized an reworked
 def basic_household_implicit_salib_industry(my_sim: sim.Simulator):
-    my_setup_function = SetupFunction()
+    my_setup_function = SetupFunction(number_of_simulation=1)
     my_setup_function.build(my_sim)
 
 if __name__ == '__main__':
@@ -68,7 +68,7 @@ if __name__ == '__main__':
                    [0, 1],
                    [0, 1]]
     }
-    param_values = saltelli.sample(problem, 1024)
+    param_values = saltelli.sample(problem, 1)
     z=0
     x=1
     np.savetxt("param_values_salib_industry.txt", param_values)
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
 
             # pv and battery is in every set_up
-            battery_capacity = (0.01 + (12 - 0.01) * lhs_factor_battery) * sum_anual_electrcitcy_demand / (1000*1000*1000)  # in kWh
+            battery_capacity = (0.01 + (12 - 0.01) * lhs_factor_battery) * sum_anual_electrcitcy_demand / (1000*1000)  # in kWh
             if int(battery_capacity) == 0:
                 battery_capacity = 1
 
@@ -218,7 +218,7 @@ if __name__ == '__main__':
 
 
             # Export configuration file
-            my_cfg.dump()
+            my_cfg.dump(number_of_simulation=1)
             os.system("python hisim.py basic_household_implicit_salib_industry basic_household_implicit_salib_industry")
 
         except Exception as e: print(e)
