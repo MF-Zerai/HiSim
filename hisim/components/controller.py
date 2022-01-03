@@ -50,10 +50,10 @@ class Controller(cp.Component):
     CheckPeakShaving="CheckPeakShaving"
 
     def __init__(self,
-                 temperature_storage_target_warm_water = 35,
-                 temperature_storage_target_heating_water =55,
-                 temperature_storage_target_hysteresis_ww=30,
-                 temperature_storage_target_hysteresis_hw=50,
+                 temperature_storage_target_warm_water = 50,
+                 temperature_storage_target_heating_water =35,
+                 temperature_storage_target_hysteresis_ww=45,
+                 temperature_storage_target_hysteresis_hw=30,
                  strategy = "optimize_own_consumption",
                  limit_to_shave=0,
                  percentage_to_shave=0):
