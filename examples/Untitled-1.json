@@ -1,0 +1,11 @@
+// create a funcation that takes multiple buildings runs at the same time  
+
+"configuration"
+
+
+    building_code = ["GB.ENG.SFH.07.Gen.ReEx.001.001" , "GB.ENG.SFH.07.Gen.ReEx.001.002" ]
+    
+             for x in building_code:
+             print (x)
+             
+
